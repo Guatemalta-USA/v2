@@ -1,0 +1,39 @@
+/* =========================================
+   GRID CORE LAYOUT CONFIGURATION
+   ========================================= */
+#homepage {
+  display: grid;
+  width: 100%;
+}
+
+#home-photos { grid-area: photos; }
+#home-current { grid-area: current; padding: 20px 10px; }
+#loading { grid-area: loading; }
+#home-updates { grid-area: updates; padding: 20px 10px; }
+
+footer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (min-width: 851px) {
+  #homepage {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "photos photos"
+      "loading loading"
+      "current updates";
+  }
+}
+
+@media (max-width: 850px) {
+  #homepage {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "photos"
+      "loading"
+      "current"
+      "updates";
+  }
+}

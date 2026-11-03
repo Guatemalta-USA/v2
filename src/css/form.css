@@ -1,0 +1,205 @@
+/* =========================================
+   BUTTON CONSTRAINTS & STYLES
+   ========================================= */
+.button,
+.accent-button,
+.action-link,
+.green-button,
+.delete-button {
+  border: none;
+  background-color: var(--blue-accent);
+  color: #ffffff !important;
+  cursor: pointer;
+  padding: 12px 24px;
+  margin: 0 5px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none !important;
+  display: inline-block;
+  text-align: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.button {
+  background-color: var(--table-even-row);
+  color: var(--body-color) !important;
+  border: 1px solid var(--card-border);
+}
+
+.no-padding {
+  padding: 5px !important;
+}
+
+.accent-button {
+  background-color: var(--blue-accent);
+  color: #fff;
+}
+
+.accent-button:hover,
+.action-link:hover {
+  background-color: #001f4d;
+}
+
+.green-button {
+  background-color: var(--green-accent) !important;
+  color: var(--green-accent-text) !important;
+}
+
+.green-button:hover {
+  background-color: #5e8000 !important;
+}
+
+.button:hover {
+  background-color: var(--card-border);
+}
+
+.delete-button {
+  background-color: var(--error-background);
+}
+
+.delete-button:hover {
+  background-color: var(--error-hover);
+}
+
+
+
+.icon-button {
+  background: transparent;
+  color: var(--body-color);
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.table-button {
+  cursor: pointer;
+}
+
+/* =========================================
+   FORM ROWS & INPUT ELEMENTS
+   ========================================= */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.left { justify-content: flex-start !important; }
+.right { justify-content: flex-end !important; }
+.center { justify-content: center !important; gap: 5px !important;}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--quill-border);
+  background-color: var(--main-background-color);
+  color: var(--body-color);
+  font-family: inherit;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--blue-accent);
+}
+
+textarea {
+  min-height: 200px;
+  field-sizing: content;
+  line-height: 1.6;
+}
+
+/* =========================================
+   TABLE CONFIGURATION
+   ========================================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 0.95rem;
+}
+
+th {
+  border-bottom: 2px solid var(--quill-border);
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  color: var(--body-color);
+}
+
+td, th {
+  padding: 12px 16px;
+}
+
+tr:nth-child(even) {
+  background-color: var(--table-even-row);
+}
+
+table li {
+  margin-left: 20px;
+}
+
+.left-text { text-align: left; }
+.right-text { text-align: right; }
+.center-text { text-align: center; }
+.center-wrapper { display: flex; justify-content: center; align-items: center; flex-direction: column;}
+.column { flex-direction: column; }
+
+/* =========================================
+   PROFILE MUTATIONS & UTILS
+   ========================================= */
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  border-top: 1px solid var(--quill-border);
+  padding-top: 15px;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Roboto", sans-serif;
+  font-weight: 500;
+  font-size: 0.8rem;
+  border: none;
+  text-transform: uppercase;
+}
+
+.edit-btn { background: var(--info-background); color: white; }
+.delete-btn { background: var(--error-background); color: white; }
+.edit-btn:hover, .delete-btn:hover { filter: brightness(1.15); }
+
+
+/* =========================================
+   Toggle Switches
+   ========================================= */
+   #toggles {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin: 10px 0;
+   }

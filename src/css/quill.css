@@ -1,0 +1,305 @@
+/* =========================================
+   1. GLOBAL THEME & TOOLBAR COLORS
+   ========================================= */
+.ql-snow .ql-stroke, 
+.ql-snow .ql-picker-canvas { stroke: var(--body-color) !important; }
+.ql-snow .ql-fill, 
+.ql-snow .ql-picker-label .ql-fill { fill: var(--body-color) !important; }
+.ql-snow .ql-picker { color: var(--body-color) !important; }
+
+/* 2. TOOLBAR STRUCTURE */
+.ql-toolbar.ql-snow {
+  border: 1px solid var(--quill-border) !important;
+  background-color: var(--main-background-color);
+  position: sticky;
+  top: 70px; /* Offset to stack below the sticky main nav */
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px;
+}
+
+.ql-toolbar.ql-snow svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: inline-block !important;
+}
+
+.ql-toolbar.ql-snow .ql-formats {
+  display: inline-flex !important;
+  align-items: center;
+  vertical-align: middle;
+}
+
+/* 3. HOVER & ACTIVE STATES */
+.ql-snow.ql-toolbar button:hover .ql-stroke,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
+.ql-snow.ql-toolbar .ql-picker-item:hover {
+  stroke: var(--link-color) !important;
+  color: var(--link-color) !important;
+}
+
+.ql-snow.ql-toolbar button:hover .ql-fill,
+.ql-snow.ql-toolbar button.ql-active .ql-fill {
+  fill: var(--link-color) !important;
+}
+
+/* 4. EDITOR & DISPLAY CONTAINERS */
+.ql-editor {
+  font-size: inherit !important; 
+  font-family: inherit !important;
+  line-height: 1.7;
+  padding: 0;
+}
+
+.ql-editor p {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ql-container.ql-snow,
+#editor-container,
+#edit-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#editor-container .ql-container {
+    min-height: 300px;
+    font-size: 1rem;
+}
+
+.ql-container.ql-snow {
+  border: 1px solid var(--quill-border) !important;
+  background-color: var(--main-background-color);
+  color: var(--body-color);
+  font-size: 1rem;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* 5. LINKS (Action Buttons & External) */
+.ql-editor a.action-link, 
+#content-display a.action-link {
+  background-color: var(--blue-accent) !important;
+  color: #ffffff !important;
+  padding: 10px 20px;
+  margin: 5px 0;
+  display: inline-block;
+  text-decoration: none !important;
+  font-family: "Roboto", sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 4px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.ql-editor a.action-link:hover,
+#content-display a.action-link:hover { filter: brightness(1.1); }
+
+.ql-editor a[target="_blank"]::after,
+#content-display a[target="_blank"]::after {
+  content: "\2197";
+  font-size: 0.8em;
+  margin-left: 4px;
+  display: inline-block;
+  vertical-align: super;
+  transition: transform 0.2s ease;
+}
+
+.ql-editor a[target="_blank"]:hover::after,
+#content-display a[target="_blank"]:hover::after { transform: translate(2px, -2px); }
+
+/* 6. LISTS */
+.ql-editor ol li, .ql-editor ul li { list-style-type: none !important; }
+.ql-editor li::marker { content: none !important; }
+
+#content-display ol, #content-display ul { padding-left: 1.5rem; }
+#content-display li[data-list="bullet"] { list-style-type: disc !important; }
+#content-display li[data-list="ordered"] { list-style-type: decimal !important; }
+
+/* 7. IMAGES & RESIZING */
+.ql-editor img { max-width: 100%; transition: outline 0.2s; }
+.ql-editor img.ql-active { outline: 2px solid var(--blue-accent); cursor: pointer; }
+
+.ql-editor img[style*="display: block; margin: auto;"],
+#content-display img[style*="display: block; margin: auto;"] {
+  display: block !important;
+  margin: 0 auto !important;
+  float: none !important;
+}
+
+.ql-editor img[style*="float: left;"],
+#content-display img[style*="float: left;"] {
+  float: left !important;
+  margin: 0 20px 15px 0 !important;
+}
+
+.ql-editor img[style*="float: right;"],
+#content-display img[style*="float: right;"] {
+  float: right !important;
+  margin: 0 0 15px 20px !important;
+}
+
+/* 8. CUSTOM TOOLBARS & OVERLAYS */
+#custom-image-toolbar {
+  z-index: 10005 !important;
+  pointer-events: auto !important;
+}
+
+div[style*="border: 1px dashed"] { pointer-events: none !important; }
+div[style*="border: 1px dashed"] > div, 
+.ql-image-resize-handler { pointer-events: auto !important; }
+
+/* 9. MISC */
+#content-display::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.ql-snow .ql-tooltip {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-radius: 4px;
+  z-index: 20;
+}
+
+/* Mobile Optimization for Aligned Images */
+@media (max-width: 600px) {
+    .ql-editor img[style*="float"],
+    #content-display img[style*="float"],
+    .ql-editor img[style*="display: block"],
+    #content-display img[style*="display: block"] {
+        float: none !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        margin-bottom: 20px !important;
+    }
+
+    .ql-editor, #content-display { word-break: break-word; }
+}
+
+.ql-editor::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.ql-video {
+  display: block;
+  max-width: 100%;
+  margin: 15px 0;
+}
+
+iframe.ql-video {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+}
+
+#post-title-input, #project-title-input {
+  width: 100%;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Quill Responsive 2-Column Layout (Using Table Elements)
+   ========================================================================== */
+.ql-container table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: none !important;
+}
+
+.ql-container table tr {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 15px;
+}
+
+.ql-container td {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+}
+
+.ql-container td img,
+.ql-container td .ql-video {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+/* Editor mode */
+.ql-snow td {
+  padding: 1.5rem !important;
+  border: 1px dashed var(--quill-border) !important;
+  background-color: var(--table-even-row) !important;
+  border-radius: 4px !important;
+}
+
+/* live view mode (.ql-disabled) */
+.ql-disabled td {
+  padding: 0 !important;
+  border: none !important;
+  background-color: transparent !important;
+}
+
+@media (min-width: 768px) {
+  .ql-container table tr {
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+  .ql-container td {
+    flex: 1 1 0% !important;
+    width: 50% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Tooltip baseline style */
+.ql-toolbar button[data-title],
+.ql-toolbar .ql-picker[data-title] { position: relative; }
+
+.ql-toolbar button[data-title]::after,
+.ql-toolbar .ql-picker[data-title]::after {
+  content: attr(data-title);
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.85);
+  background-color: #1a1a1a;
+  color: #ffffff;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10005;
+}
+
+.ql-toolbar button[data-title]:hover::after,
+.ql-toolbar .ql-picker[data-title]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+#viewer-container img {
+  cursor: pointer;
+}

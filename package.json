@@ -1,0 +1,26 @@
+{
+  "name": "guatemalta-usa-v2",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "browser-image-compression": "^2.0.2",
+    "firebase": "^13.2.0",
+    "i18next": "^26.7.1",
+    "i18next-browser-languagedetector": "^8.3.0",
+    "qrcode": "^1.5.4",
+    "quill": "^2.0.3",
+    "quill-image-resize-module": "^3.0.0",
+    "quill-resize-module": "^2.1.3"
+  }
+}
