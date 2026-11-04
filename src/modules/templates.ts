@@ -1,20 +1,20 @@
-import { navigateTo, type AppPath } from "./navigate.js";
 import { createLink, createSocialLink, donateListModal, makeElement } from "./utils.js";
 import i18n, { updateContent } from "./i18n.js";
-import { getUserRole, signOutUser } from "../services/authService.js";
-import { auth } from "../services/firebase.js";
-import { getDonateButtonList } from "../services/firebaseService.js";
+import { signOutUser } from "../services/auth.service.ts.js";
+import { getDonateButtonList } from "../services/firebase.service.ts.js";
+import { router } from "../router.js";
+import { state } from "./state.module.js";
 
 type SubNavItem = {
   label: string;
-  path: AppPath;
+  path: string;
   hash: string;
   i18n: string;
 };
 
 type NavItem = {
   label: string;
-  path: AppPath | "donate";
+  path: string;
   i18n: string;
   children?: SubNavItem[];
 };
@@ -37,10 +37,10 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Donate", path: "donate", i18n: "nav_donate" },
 ];
 
-let unsubscribeAuth: (() => void) | null = null;
+let unsubscribeState: (() => void) | null = null;
 let languageChangeListener: ((lng: string) => void) | null = null;
 
-export function loadNav(activeNavLink: string) {
+export function loadNav() {
   const nav = document.querySelector("nav") as HTMLElement;
   if (!nav) return;
 
@@ -61,7 +61,7 @@ export function loadNav(activeNavLink: string) {
       const donateButtonLinks = await getDonateButtonList();
 
       if (!donateButtonLinks || donateButtonLinks.length === 0) {
-        navigateTo("/donate" as any);
+        router.navigateTo("/donate");
         return;
       }
 
@@ -71,7 +71,7 @@ export function loadNav(activeNavLink: string) {
       );
 
       if (selectedProject) {
-        navigateTo(`/donate?id=${selectedProject.formId}` as any);
+        router.navigateTo(`/donate/${selectedProject.formId}`);
       }
     } catch (error) {
       console.error("Error opening donate list modal:", error);
@@ -80,19 +80,28 @@ export function loadNav(activeNavLink: string) {
 
   nav.innerHTML = "";
 
+  const updateActiveNavStates = (currentPath: string) => {
+    const allLinks = nav.querySelectorAll("[data-path]");
+    allLinks.forEach((link) => {
+      const linkPath = link.getAttribute("data-path");
+      if (linkPath === currentPath || (linkPath !== "/" && currentPath.startsWith(linkPath!))) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  };
+
   NAV_ITEMS.forEach((item) => {
     const { label, path, children, i18n: i18nKey } = item;
 
     if (path === "donate") {
       const donateLink = createLink(label, "donate-nav-btn", false);
+      donateLink.setAttribute("data-path", "/donate");
       if (i18nKey) donateLink.setAttribute("data-i18n", i18nKey);
 
       donateLink.addEventListener("click", handleDonateClick);
       donateLink.classList.add("donate-button");
-
-      if (activeNavLink === label) {
-        donateLink.setAttribute("aria-current", "page");
-      }
 
       nav.appendChild(donateLink);
     } else if (children && children.length > 0) {
@@ -102,22 +111,20 @@ export function loadNav(activeNavLink: string) {
       const dropdownHeader = document.createElement("div");
       dropdownHeader.className = "dropdown-header";
 
-      const parentLink = createLink(label, "dropdown-toggle", false);
+      const parentLink = createLink(label, path, false);
+      parentLink.classList.add("dropdown-toggle");
+
+      parentLink.setAttribute("data-path", path);
       if (i18nKey) parentLink.setAttribute("data-i18n", i18nKey);
 
       parentLink.addEventListener("click", (e) => {
         e.preventDefault();
         closeMobileNav();
-        navigateTo(path as any);
+        router.navigateTo(path);
       });
-
-      if (activeNavLink === label) {
-        parentLink.setAttribute("aria-current", "page");
-      }
 
       dropdownHeader.appendChild(parentLink);
       dropdownContainer.appendChild(dropdownHeader);
-
       const dropdownMenu = document.createElement("ul");
       dropdownMenu.className = "nav-dropdown-menu";
 
@@ -126,12 +133,13 @@ export function loadNav(activeNavLink: string) {
         li.className = "nav-dropdown-item";
 
         const subLink = createLink(subItem.label, "", false);
+        subLink.setAttribute("data-path", subItem.path);
         if (subItem.i18n) subLink.setAttribute("data-i18n", subItem.i18n);
 
         subLink.addEventListener("click", (e) => {
           e.preventDefault();
           closeMobileNav();
-          navigateTo((subItem.path + subItem.hash) as any);
+          router.navigateTo(subItem.path + subItem.hash);
         });
 
         li.appendChild(subLink);
@@ -142,39 +150,36 @@ export function loadNav(activeNavLink: string) {
       nav.appendChild(dropdownContainer);
     } else {
       const link = createLink(label, "", false);
+      link.setAttribute("data-path", path);
       if (i18nKey) link.setAttribute("data-i18n", i18nKey);
 
       link.addEventListener("click", () => {
         closeMobileNav();
-        navigateTo(path as any);
+        router.navigateTo(path);
       });
 
-      if (activeNavLink === label) {
-        link.setAttribute("aria-current", "page");
-      }
       nav.appendChild(link);
     }
   });
 
-  const authLinksContainer = document.createElement("div");
-  authLinksContainer.className = "auth-links";
-  nav.appendChild(authLinksContainer);
-
-  if (unsubscribeAuth) {
-    unsubscribeAuth();
+  let authLinksContainer = nav.querySelector(".auth-links") as HTMLElement;
+  if (!authLinksContainer) {
+    authLinksContainer = document.createElement("div");
+    authLinksContainer.className = "auth-links";
+    nav.appendChild(authLinksContainer);
   }
 
-  unsubscribeAuth = auth.onAuthStateChanged(async (user) => {
+  // Helper to render auth-dependent links (Admin / Log Out) based on AppState
+  const updateAuthLinks = () => {
     authLinksContainer.innerHTML = "";
 
-    if (user) {
-      const userRole = await getUserRole(user.uid);
-
-      if (userRole === "admin") {
+    if (state.currentUser) {
+      if (state.currentRole === "admin") {
         const admin = makeElement("a", "admin", "", "Admin", "nav_admin");
+        admin.setAttribute("data-path", "/admin");
         admin.addEventListener("click", () => {
           closeMobileNav();
-          navigateTo("/admin");
+          router.navigateTo("/admin");
         });
         authLinksContainer.appendChild(admin);
       }
@@ -188,36 +193,48 @@ export function loadNav(activeNavLink: string) {
       authLinksContainer.appendChild(logout);
       updateContent();
     }
+  };
+
+  // Language Switch Setup
+  const langSwitchLabel = makeElement("label", "lang-toggle", "lang-switch", null) as HTMLLabelElement;
+  const leftLabel = makeElement("span", null, "lang-text", "EN");
+  const langCheckbox = makeElement("input", null, "lang-toggle-input", null) as HTMLInputElement;
+  langCheckbox.type = "checkbox";
+  const slider = makeElement("span", null, "slider", null);
+  const rightLabel = makeElement("span", null, "lang-text", "ES");
+
+  const activeLang = i18n.resolvedLanguage || i18n.language || "en";
+  langCheckbox.checked = activeLang.startsWith("es");
+
+  langCheckbox.addEventListener("change", () => {
+    const nextLang = langCheckbox.checked ? "es" : "en";
+    i18n.changeLanguage(nextLang);
   });
 
- // Language Switch Setup
-const langSwitchLabel = makeElement("label", "lang-toggle", "lang-switch", null) as HTMLLabelElement;
-const leftLabel = makeElement("span", null, "lang-text", "EN");
-const langCheckbox = makeElement("input", null, "lang-toggle-input", null) as HTMLInputElement;
-langCheckbox.type = "checkbox";
-const slider = makeElement("span", null, "slider", null);
-const rightLabel = makeElement("span", null, "lang-text", "ES");
+  if (languageChangeListener) {
+    i18n.off("languageChanged", languageChangeListener);
+  }
 
-const activeLang = i18n.resolvedLanguage || i18n.language || "en";
-langCheckbox.checked = activeLang.startsWith("es");
+  languageChangeListener = (lng: string) => {
+    langCheckbox.checked = lng.startsWith("es");
+  };
+  i18n.on("languageChanged", languageChangeListener);
 
-langCheckbox.addEventListener("change", () => {
-  const nextLang = langCheckbox.checked ? "es" : "en";
-  i18n.changeLanguage(nextLang);
-});
+  langSwitchLabel.append(leftLabel, langCheckbox, slider, rightLabel);
+  nav.appendChild(langSwitchLabel);
 
-if (languageChangeListener) {
-  i18n.off("languageChanged", languageChangeListener);
-}
+  // Subscribe to App State changes so route updates AND auth/role changes trigger nav redraws
+  if (unsubscribeState) {
+    unsubscribeState();
+  }
+  unsubscribeState = state.subscribe((_currentState) => {
+    updateActiveNavStates(window.location.pathname);
+    updateAuthLinks();
+  });
 
-languageChangeListener = (lng: string) => {
-  langCheckbox.checked = lng.startsWith("es");
-};
-i18n.on("languageChanged", languageChangeListener);
-
-langSwitchLabel.append(leftLabel, langCheckbox, slider, rightLabel);
-nav.appendChild(langSwitchLabel);
-
+  // Set initial active state and auth links on load
+  updateActiveNavStates(window.location.pathname);
+  updateAuthLinks();
   updateContent();
 }
 
@@ -232,7 +249,7 @@ export function loadHeader() {
   logo.alt = "Guatemalta USA";
   logo.classList.add("logo");
   logo.onclick = function () {
-    navigateTo("/");
+    router.navigateTo("/");
   };
   headerElement.appendChild(logo);
 
@@ -284,7 +301,7 @@ export function loadFooter() {
   privatePolicy.textContent = "Privacy Policy";
   privatePolicy.className = "link";
   privatePolicy.onclick = function () {
-    navigateTo("/privatepolicy");
+    router.navigateTo("/privatepolicy");
   };
   privatePolicy.setAttribute("data-i18n", "privacy_policy");
   ul.appendChild(privatePolicy);
@@ -293,7 +310,7 @@ export function loadFooter() {
   financial.textContent = "Financial Transparency";
   financial.className = "link";
   financial.onclick = function () {
-    navigateTo("/financialtransparency");
+    router.navigateTo("/financialtransparency");
   };
   financial.setAttribute("data-i18n", "financial_transparency");
   ul.appendChild(financial);

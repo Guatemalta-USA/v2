@@ -7,7 +7,6 @@ import {
     orderBy,
     query,
     QueryDocumentSnapshot,
-    runTransaction,
     serverTimestamp,
     setDoc,
     updateDoc,
@@ -16,16 +15,18 @@ import {
     type FirestoreDataConverter,
     type SnapshotOptions,
     writeBatch,
-    arrayUnion
+    arrayUnion,
+    runTransaction
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { state } from "../modules/state.module";
 import type { PageContents } from "../models/page.model";
 import { Post } from "../models/post.model";
 import type { Profile } from "../models/profile.model";
 import { Project, type ProjectInfo } from "../models/project.model";
 import type { ChildSponsorship, Donor, refStatus } from "../models/sponsorship.model";
 
-//Global Firebase Variables
+// Global Firebase Variables
 declare const __app_id: string;
 const POSTS_PATH = 'posts';
 
@@ -38,8 +39,6 @@ const projectConverter: FirestoreDataConverter<Project> = {
         return Project.fromFirestore(snapshot.id, data);
     }
 };
-
-const projectsCol = collection(db, 'projects').withConverter(projectConverter);
 
 function slugify(text: string): string {
     return text
@@ -59,6 +58,7 @@ export async function addPage(pageData: PageContents): Promise<void> {
     try {
         const docRef = doc(db, "pages", pageData.pageName);
         await setDoc(docRef, pageData);
+        state.setPage(pageData.pageName, pageData);
         console.log(`Page "${pageData.pageName}" created successfully.`);
     } catch (error) {
         console.error("Error adding page:", error);
@@ -66,14 +66,21 @@ export async function addPage(pageData: PageContents): Promise<void> {
     }
 }
 
-// PAGES
+// Pages
 export async function getPageContents(pageName: string): Promise<PageContents | null> {
+    const cachedPage = state.getPage(pageName);
+    if (cachedPage) {
+        return cachedPage as PageContents;
+    }
+
     try {
         const docRef = doc(db, "pages", pageName);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            return docSnap.data() as PageContents;
+            const data = docSnap.data() as PageContents;
+            state.setPage(pageName, data);
+            return data;
         } else {
             console.warn(`Page "${pageName}" not found!`);
             return null;
@@ -99,13 +106,17 @@ export async function updatePageContents(pageName: string, updates: Partial<Page
     }
 
     await setDoc(docRef, payload, { merge: true });
+    
+    const existing = state.getPage(pageName) || {};
+    state.setPage(pageName, { ...existing, ...updates });
 }
 
-// PROFILES
+// Profiles
 export async function addProfile(data: Profile) {
     try {
         const docRef = doc(db, "profiles", data.name);
         await setDoc(docRef, data);
+        state.profiles = null;
     } catch (error) {
         console.error("Error adding profile: ", error);
         throw new Error("Failed to add profile");
@@ -113,6 +124,10 @@ export async function addProfile(data: Profile) {
 }
 
 export async function getAllProfiles(): Promise<Profile[]> {
+    if (state.profiles) {
+        return state.profiles as Profile[];
+    }
+
     try {
         const profilesQuery = query(collection(db, "profiles"), orderBy("name", "asc"));
         const querySnapshot = await getDocs(profilesQuery);
@@ -121,6 +136,7 @@ export async function getAllProfiles(): Promise<Profile[]> {
             ...doc.data()
         } as Profile));
 
+        state.profiles = profiles;
         return profiles;
     } catch (error) {
         console.error("Error fetching all profiles: ", error);
@@ -129,30 +145,15 @@ export async function getAllProfiles(): Promise<Profile[]> {
 }
 
 export async function getProfilesByCountry(countryName: string): Promise<Profile[]> {
-    try {
-        const profilesQuery = query(
-            collection(db, "profiles"),
-            where("country", "==", countryName),
-            orderBy("name", "asc")
-        );
-
-        const querySnapshot = await getDocs(profilesQuery);
-
-        const profiles: Profile[] = querySnapshot.docs.map(doc => ({
-            ...doc.data()
-        } as Profile));
-
-        return profiles;
-    } catch (error) {
-        console.error(`Error fetching profiles for ${countryName}: `, error);
-        throw new Error("Failed to fetch profiles by country");
-    }
+    const profiles = await getAllProfiles();
+    return profiles.filter(p => p.country === countryName);
 }
 
 export async function updateProfile(name: string, updates: Partial<Profile>) {
     try {
         const docRef = doc(db, "profiles", name);
         await updateDoc(docRef, updates);
+        state.profiles = null;
     } catch (error) {
         console.error("Error updating profile: ", error);
         throw new Error("Failed to update profile");
@@ -163,13 +164,14 @@ export async function deleteProfile(name: string) {
     try {
         const docRef = doc(db, "profiles", name);
         await deleteDoc(docRef);
+        state.profiles = null;
     } catch (error) {
         console.error("Error deleting profile: ", error);
         throw new Error("Failed to delete profile");
     }
 }
 
-//ChildSponsorship
+// Child Sponsorship
 export async function getAllCohorts(): Promise<string[]> {
   try {
     const querySnapshot = await getDocs(collection(db, "childSponsorships"));
@@ -198,11 +200,9 @@ export async function getAllChildSponsorshipsByCohort(cohort: string): Promise<C
         );
         const querySnapshot = await getDocs(SponsorshipQuery);
 
-        const sponsorships: ChildSponsorship[] = querySnapshot.docs.map(doc => ({
+        return querySnapshot.docs.map(doc => ({
             ...doc.data()
         } as ChildSponsorship));
-
-        return sponsorships;
     } catch (error) {
         console.error(`Error fetching child sponsorships for ${cohort}: `, error);
         throw new Error(`Failed to fetch sponsorships for ${cohort}`);
@@ -239,17 +239,16 @@ export async function deleteChildSponsorship(name: string) {
     }
 }
 
-//Sponsorship Donors
+// Sponsorship Donors
 export async function getAllDonors() {
     try {
         const donorQuery = query(collection(db, "referrals"), orderBy("year", "desc"));
         const querySnapshot = await getDocs(donorQuery);
 
-        const donors: Donor[] = querySnapshot.docs.map(doc => ({
+        return querySnapshot.docs.map(doc => ({
             ...doc.data(),
             refCode: doc.id
         } as Donor));
-        return donors;
     } catch (error) {
         console.error("Error fetching all profiles: ", error);
         throw new Error("Failed to fetch profiles");
@@ -266,11 +265,12 @@ export async function validateReferralCode(refCode: string): Promise<refStatus> 
             isValid: true,
             donorName: "",
             hasClaimed: false
-        }
+        };
 
         if (!docSnap.exists()) {
             result["isValid"] = false;
             result["error"] = "Invalid referral code. Please check the email or contact us for assistance";
+            return result;
         }
 
         const data = docSnap.data();
@@ -288,7 +288,7 @@ export async function validateReferralCode(refCode: string): Promise<refStatus> 
         }
     } catch (error) {
         console.error("Error validating refCode: ", error);
-        return { isValid: false, donorName: "", hasClaimed: false, error: "Error. Please try reloading the page" }
+        return { isValid: false, donorName: "", hasClaimed: false, error: "Error. Please try reloading the page" };
     }
 }
 
@@ -342,33 +342,45 @@ export async function updateDonor(refCode: string, childName: string): Promise<b
 }
 
 
-//POSTS
+// Posts
 export async function getAllPosts(): Promise<Post[]> {
+    if (state.posts) {
+        return state.posts as Post[];
+    }
+
     const q = query(collection(db, "posts"), orderBy("publishDate", "desc"));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => Post.fromFirestore(doc.id, doc.data()));
+    const posts = querySnapshot.docs.map(doc => Post.fromFirestore(doc.id, doc.data()));
+    
+    state.posts = posts;
+    return posts;
 }
 
 export async function getPostsWithLinkedProjectId(projectId: string): Promise<Post[]> {
-    const q = query(collection(db, "posts"), where('linkedProjectId', '==', projectId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => Post.fromFirestore(doc.id, doc.data()));
+    const posts = await getAllPosts();
+    return posts.filter(post => post.linkedProjectId === projectId);
 }
 
 export async function savePost(post: Post): Promise<string> {
-    if (post.id) {
-        const docRef = doc(db, POSTS_PATH, post.id);
+    let postId = post.id;
+    if (postId) {
+        const docRef = doc(db, POSTS_PATH, postId);
         await updateDoc(docRef, post.toFirestore());
-        return post.id;
+    } else {
+        const customId = slugify(post.postTitle.en);
+        const docRef = doc(db, POSTS_PATH, customId);
+        await setDoc(docRef, post.toFirestore());
+        postId = customId;
     }
-    const customId = slugify(post.postTitle.en);
-    const docRef = doc(db, POSTS_PATH, customId);
-    await setDoc(docRef, post.toFirestore());
-
-    return customId;
+    state.posts = null;
+    return postId;
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
+    const posts = await getAllPosts();
+    const found = posts.find(p => p.id === id);
+    if (found) return found;
+
     const docRef = doc(db, "posts", id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
@@ -381,7 +393,7 @@ export async function deletePost(postId: string): Promise<void> {
     try {
         const postRef = doc(db, "posts", postId);
         await deleteDoc(postRef);
-
+        state.posts = null;
         console.log(`Firestore: Post ${postId} successfully deleted.`);
     } catch (error) {
         console.error("Error deleting post from Firestore:", error);
@@ -389,34 +401,35 @@ export async function deletePost(postId: string): Promise<void> {
     }
 }
 
-// PROJECTS
+// Projects
 export async function getAllProjects(): Promise<Project[]> {
+    if (state.projects) {
+        return state.projects as Project[];
+    }
+
     const q = query(collection(db, "projects"));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => Project.fromFirestore(doc.id, doc.data()));
+    const projects = querySnapshot.docs.map(doc => Project.fromFirestore(doc.id, doc.data()));
+    
+    state.projects = projects;
+    return projects;
 }
 
 export async function getProjectsByStatus(isCurrent: boolean): Promise<Project[]> {
-    const sortField = isCurrent ? "orderIndex" : "projectTitle.en";
-
-    const q = query(
-        collection(db, 'projects').withConverter(projectConverter),
-        where("isCurrent", "==", isCurrent),
-        where("published", "==", true),
-        orderBy(sortField, "asc")
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => doc.data());
+    const projects = await getAllProjects();
+    return projects.filter(p => p.isCurrent === isCurrent && p.published === true);
 }
 
 export async function getUnpublishedProjects(): Promise<Project[]> {
-    const q = query(projectsCol, where("published", "==", false));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data());
+    const projects = await getAllProjects();
+    return projects.filter(p => p.published === false);
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
+    const projects = await getAllProjects();
+    const found = projects.find(p => p.id === id);
+    if (found) return found;
+
     const docRef = doc(db, 'projects', id).withConverter(projectConverter);
     const docSnap = await getDoc(docRef);
 
@@ -425,13 +438,11 @@ export async function getProjectById(id: string): Promise<Project | null> {
 
 export async function saveProject(project: Project): Promise<string> {
   try {
-    if (project.id) {
-      // Update existing document - maintain existing orderIndex
-      const docRef = doc(db, 'projects', project.id);
+    let savedId = project.id;
+    if (savedId) {
+      const docRef = doc(db, 'projects', savedId);
       await setDoc(docRef, project.toFirestore());
-      return project.id;
     } else {
-      // 1. Find highest existing orderIndex
       const projectsRef = collection(db, 'projects');
       const q = query(projectsRef, orderBy('orderIndex', 'desc'), limit(1));
       const snapshot = await getDocs(q);
@@ -442,17 +453,18 @@ export async function saveProject(project: Project): Promise<string> {
         nextOrderIndex = (highestProject.orderIndex || 0) + 1;
       }
 
-      // 2. Assign the next orderIndex
       project.orderIndex = nextOrderIndex;
 
-      // 3. Generate custom slug ID and save
       const titleString = project.projectTitle.en || project.projectTitle.es || 'untitled-project';
       const customId = slugify(titleString);
       
       const docRef = doc(db, 'projects', customId);
       await setDoc(docRef, project.toFirestore());
-      return customId;
+      savedId = customId;
     }
+
+    state.projects = null;
+    return savedId!;
   } catch (error) {
     console.error("Error saving project: ", error);
     throw error;
@@ -469,6 +481,7 @@ export async function updateProjectsOrder(orderUpdates: { id: string; newOrderIn
 
     try {
         await batch.commit();
+        state.projects = null;
     } catch (error) {
         console.error("Error committing batch order update:", error);
         throw new Error("Could not update project order.");
@@ -478,6 +491,7 @@ export async function updateProjectsOrder(orderUpdates: { id: string; newOrderIn
 export async function deleteProject(id: string): Promise<void> {
     const docRef = doc(db, 'projects', id);
     await deleteDoc(docRef);
+    state.projects = null;
 }
 
 // Donate Button List
@@ -492,6 +506,7 @@ export async function setProjectLink(project: ProjectInfo) {
         };
 
         await setDoc(docRef, projectData, { merge: true });
+        state.donateList = null;
         return docRef.id;
     } catch (error) {
         console.error("Error setting project link: ", error);
@@ -500,6 +515,10 @@ export async function setProjectLink(project: ProjectInfo) {
 }
 
 export async function getDonateButtonList() {
+    if (state.donateList) {
+        return state.donateList as ProjectInfo[];
+    }
+
     try {
         const q = query(collection(db, "donateButtonList"), orderBy("orderIndex", "asc"));
         const querySnapshot = await getDocs(q);
@@ -507,6 +526,8 @@ export async function getDonateButtonList() {
         const donateList: ProjectInfo[] = querySnapshot.docs.map(doc => ({
             ...doc.data()
         } as ProjectInfo));
+
+        state.donateList = donateList;
         return donateList;
     } catch (error: any) {
         console.error("Error fetching Donate Button List", error);
@@ -515,31 +536,15 @@ export async function getDonateButtonList() {
 }
 
 export async function getProjectLinkByFormId(formId: string): Promise<ProjectInfo | null> {
-    try {
-        const donateListRef = collection(db, "donateButtonList");
-        const q = query(donateListRef, where("formId", "==", formId));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            const docSnap = querySnapshot.docs[0];
-            return {
-                id: docSnap.id,
-                ...docSnap.data()
-            } as ProjectInfo;
-        }
-
-        console.warn(`No project found with formId: ${formId}`);
-        return null;
-    } catch (error) {
-        console.error("Error fetching project link by formId:", error);
-        throw new Error("Failed to retrieve project link");
-    }
+    const donateList = await getDonateButtonList();
+    return donateList.find(item => item.formId === formId) || null;
 }
 
 export async function deleteProjectFromDonateList(docId: string) {
     try {
         const docRef = doc(db, "donateButtonList", docId);
         await deleteDoc(docRef);
+        state.donateList = null;
     } catch (error: any) {
         console.error("Error deleting project from Donate Button List:", error);
         throw new Error("Failed to delete project from Donate Button List");
@@ -556,6 +561,7 @@ export async function updateDonateListOrder(orderUpdates: { id: string; newOrder
 
     try {
         await batch.commit();
+        state.donateList = null;
     } catch (error) {
         console.error("Error committing batch order update for donate list:", error);
         throw new Error("Could not update donate list order.");

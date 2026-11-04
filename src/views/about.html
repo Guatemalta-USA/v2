@@ -1,0 +1,74 @@
+<div class="container">
+                <div id="loading">
+                    <div class="loader"></div>
+                    <h2>Loading...</h2>
+                </div>
+                <div id="view-section">
+                    <div id="content-display" class="ql-snow ql-editor">
+                    </div>
+                    <div id="last-updated"></div>
+                </div>
+                <div id="admin-controls" class="hide"></div>
+
+                <div id="edit-section" class="hide">
+                    <div id="editor-container" style="height: 300px;"></div>
+                    <div class="actions">
+                        <button id="cancel-btn" class="accent-button">Cancel</button>
+                        <button id="save-btn" class="accent-button">Save & Close</button>
+                    </div>
+                </div>
+            </div>
+            <div id="team"></div>
+            <div id="profiles-section"></div>
+            <div id="contact"></div>
+            <form id="contact-form" class="container hide">
+                <h2 data-i18n="nav_contact">Contact Us</h2>
+                <div class="form-row">
+                    <label for="entry.1134764317" data-i18n="your_name">Your Name:</label>
+                    <input type="text" id="entry.1134764317" name="entry.1134764317" />
+                </div>
+                <div class="form-row">
+                    <label for="entry.1281748752" data-i18n="your_email">Your Email:</label>
+                    <input type="text" id="entry.1281748752" name="entry.1281748752" />
+                </div>
+                <div class="form-row">
+                    <label for="entry.1027877017" data-i18n="comments">Comments:</label>
+                    <textarea type="text" id="entry.1027877017" name="entry.1027877017"></textarea>
+                </div>
+                <div class="button-row">
+                    <button type="reset" id="reset-btn" class="accent-button" data-i18n="reset_form">Reset Form</button>
+                    <button type="submit" id="submit-btn" class="accent-button" data-i18n="button_submit">Submit</button>
+                </div>
+            </form>
+        </main>
+        <footer></footer>
+    </div>
+    <div id="modal-root" class="hide">
+        <div class="modal-overlay">
+            <section class="message-wrapper" id="modal-message"></section>
+            <div class="modal-content">
+                <h2>Add Team Member</h2>
+                <form id="add-profile-form">
+                    <input type="text" id="p-name" name="p-name" placeholder="First Name" />
+                    <input type="text" id="p-position-english" name="p-position-english" placeholder="English Position" />
+                    <input type="text" id="p-position-spanish" name="p-position-spanish" placeholder="Spanish Position" />
+                    <input type="email" id="p-email" name="p-email" placeholder="Email" />
+                    <select name="country" id="country">
+                        <option disabled selected>Select Country...</option>
+                        <option value="usa">USA</option>
+                        <option value="guatemala">Guatemala</option>
+                    </select>
+                    <textarea id="p-about-english" name="p-about-english" placeholder="English About bio..."></textarea>
+                    <textarea id="p-about-spanish" name="p-about-spanish" placeholder="Spanish About bio..."></textarea>
+
+                    <label for="p-image">Profile Photo:</label>
+                    <input type="file" id="p-image" accept="image/*" />
+
+                    <div class="button-row">
+                        <button type="button" id="close-modal" class="accent-button">Cancel</button>
+                        <button type="submit" id="save-profile" class="accent-button">Save Profile</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>

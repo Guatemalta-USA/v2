@@ -230,14 +230,6 @@ export function makeElement(elementType: string, elementId: string | null, eleme
   return newElement;
 }
 
-export function makePBLock(pParts: KeyValue[]) {
-  return pParts.reduce((acc: HTMLElement, currentPart: KeyValue) => {
-    const nextPart = makeElement(currentPart[0], null, null, currentPart[1]);
-    acc.appendChild(nextPart);
-    return acc;
-  }, document.createElement("p"));
-}
-
 export async function confirmDeleteModal(messageHeader: string, messageBody: string): Promise<boolean> {
   return new Promise((resolve) => {
     const modalRoot = makeElement("div", "modal-root", null, null);

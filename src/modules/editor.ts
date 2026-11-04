@@ -1,12 +1,11 @@
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
-import { ALL_APP_PATHS } from './navigate';
 import imageCompression from 'browser-image-compression';
-import { ImageResize } from 'quill-image-resize-module-ts';
+import 'quill-resize-module';
 import { createMessage, formatDate, makeElement, promptModal } from './utils';
 import i18n, { updateContent, getResolvedLanguage } from './i18n';
 import { registerCustomQuillBlots } from './quillBlots';
-import { getPageContents, updatePageContents } from '../services/firebaseService';
+import { getPageContents, updatePageContents } from '../services/firebase.service.ts';
 
 function extractOps(langData: any): any[] {
     if (!langData) return [];
@@ -18,10 +17,6 @@ function extractOps(langData: any): any[] {
 
 // Initialize and register custom Quill formats
 registerCustomQuillBlots();
-
-if (!Quill.imports['modules/imageResize']) {
-    Quill.register('modules/imageResize', ImageResize);
-}
 
 export function isEmptyDelta(deltaObj: any): boolean {
     if (!deltaObj) return true;
@@ -74,7 +69,7 @@ export class TheEditor {
                         [{ header: [1, 2, 3, false] }],
                         ['bold', 'italic', 'underline'],
                         [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        ['givebutter', 'action-link', 'link', { 'nav-link': ALL_APP_PATHS }, 'mailto'],
+                        ['givebutter', 'action-link', 'link', 'nav-link', 'mailto'],
                         ['table', 'image', 'video'],
                         ['clean']
                     ],
@@ -114,15 +109,26 @@ export class TheEditor {
                                 if (url) this.quill.format('actionLink', url);
                             }
                         },
-                        'nav-link': (value: string) => {
-                            if (value) {
-                                const range = this.quill.getSelection();
-                                if (range && range.length > 0) {
-                                    this.quill.format('link', value);
-                                } else {
-                                    const index = range ? range.index : 0;
-                                    this.quill.insertText(index, value, 'link', value);
-                                    this.quill.setSelection(index + value.length);
+                        'nav-link': async () => {
+                            const pageResponse = await promptModal(
+                                "Enter internal page path",
+                                ["e.g., about or donate"],
+                                "Insert Page Link",
+                                false
+                            );
+                            if (pageResponse) {
+                                let page = pageResponse[0]?.trim();
+                                if (page) {
+                                    const internalPath = page.startsWith('/') ? page : `/${page}`;
+                                    const range = this.quill.getSelection();
+
+                                    if (range && range.length > 0) {
+                                        this.quill.format('link', internalPath);
+                                    } else {
+                                        const index = range ? range.index : 0;
+                                        this.quill.insertText(index, internalPath, 'link', internalPath);
+                                        this.quill.setSelection(index + internalPath.length);
+                                    }
                                 }
                             }
                         },
