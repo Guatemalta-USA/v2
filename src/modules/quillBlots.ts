@@ -62,8 +62,15 @@ export class ActionLink extends Link {
         const node = super.create(value);
         node.setAttribute('class', 'action-link');
         node.setAttribute('href', value);
-        node.setAttribute('target', '_blank');
-        node.setAttribute('rel', 'noopener noreferrer');
+
+        // Only open absolute external URLs in a new tab; internal paths stay _self
+        if (value.startsWith('http://') || value.startsWith('https://')) {
+            node.setAttribute('target', '_blank');
+            node.setAttribute('rel', 'noopener noreferrer');
+        } else {
+            node.setAttribute('target', '_self');
+        }
+
         return node;
     }
 

@@ -6,6 +6,9 @@ import { getAllProfiles, addProfile, getProfilesByCountry, deleteProfile, update
 import htmlContent from "./about.html?raw"
 import { state } from "../modules/state.module.ts";
 
+// Track language change listener at module scope for cleanup
+let aboutLangListener: (() => void) | null = null;
+
 export async function renderAboutPage(container: HTMLElement) {
     container.innerHTML = htmlContent;
 
@@ -17,12 +20,8 @@ export async function renderAboutPage(container: HTMLElement) {
     const addProfileForm = document.getElementById("add-profile-form") as HTMLFormElement;
     const cancelButton = document.getElementById("close-modal");
     let editingProfileId: string | null = null;
-    let isAdmin = false;
     const countries: string[] = ["usa", "guatemala"];
     const contactForm = document.getElementById("contact-form") as HTMLFormElement;
-    const currentLang = (getResolvedLanguage() || 'en').slice(0, 2) as 'en' | 'es';
-
-    // TODO: Get Our story section working
 
     async function handleSubmit() {
         const addProfileForm = document.getElementById("add-profile-form") as HTMLFormElement;
@@ -124,6 +123,8 @@ export async function renderAboutPage(container: HTMLElement) {
     }
 
     async function loadProfiles() {
+        // Dynamically evaluate active language on every render/reload
+        const currentLang = (getResolvedLanguage() || 'en').slice(0, 2) as 'en' | 'es';
         profilesSection.innerHTML = "";
 
         for (const country of countries) {
@@ -160,43 +161,44 @@ export async function renderAboutPage(container: HTMLElement) {
 
                         const positionEl = makeElement("p", null, "profile-position", null);
                         const positionBold = document.createElement("b");
-                        positionBold.textContent = currentProfile.position[currentLang];
+                        positionBold.textContent = currentProfile.position[currentLang] || currentProfile.position['en'];
                         positionEl.appendChild(positionBold);
                         detailsContainer.appendChild(positionEl);
 
                         const aboutElEN = makeElement("div", null, "profile-bio", null);
                         const aboutElEs = makeElement("div", null, "profile-bio", null);
-                        const paragraphsEN = currentProfile.about['en']
+                        
+                        const paragraphsEN = (currentProfile.about['en'] || '')
                             .split(/\r?\n/)
                             .map((p) => p.trim())
                             .filter((p) => p.length > 0);
 
                         paragraphsEN.forEach((paragraphText) => {
                             const formattedText = paragraphText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
-
                             const p = document.createElement("p");
                             p.innerHTML = formattedText;
                             aboutElEN.appendChild(p);
                         });
-                        const paragraphsEs = currentProfile.about['es']
+
+                        const paragraphsEs = (currentProfile.about['es'] || '')
                             .split(/\r?\n/)
                             .map((p) => p.trim())
                             .filter((p) => p.length > 0);
 
                         paragraphsEs.forEach((paragraphText) => {
                             const formattedText = paragraphText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
-
                             const p = document.createElement("p");
                             p.innerHTML = formattedText;
                             aboutElEs.appendChild(p);
                         });
-                        const bioContentEn = aboutElEN || aboutElEs;
-                        const bioContentEs = aboutElEs || aboutElEN;
+
+                        const bioContentEn = aboutElEN.hasChildNodes() ? aboutElEN : aboutElEs;
+                        const bioContentEs = aboutElEs.hasChildNodes() ? aboutElEs : aboutElEN;
                         const initialContent = currentLang === "en" ? bioContentEn : bioContentEs;
 
                         detailsContainer.appendChild(initialContent);
 
-                        if (isAdmin) {
+                        if (state.currentRole === "admin") {
                             const actionsDiv = makeElement("div", null, "profile-actions", null);
                             const editBtn = createButton({ buttonText: "Edit", buttonType: "button", buttonId: `edit-${index}`, buttonClass: "edit-btn", icon: "edit", i18n: "button_edit" });
                             editBtn.onclick = () => handleEdit(currentProfile);
@@ -336,6 +338,15 @@ export async function renderAboutPage(container: HTMLElement) {
         };
         adminControls.appendChild(addBtn);
     }
+
+    // Subscribe to language change events so bios update automatically
+    if (aboutLangListener) {
+        i18n.off("languageChanged", aboutLangListener);
+    }
+    aboutLangListener = () => {
+        loadProfiles();
+    };
+    i18n.on("languageChanged", aboutLangListener);
 
     await loadProfiles();
 

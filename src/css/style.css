@@ -104,6 +104,10 @@ body {
   display: none !important;
 }
 
+.center {
+  text-align: center !important;
+}
+
 .material-symbols-outlined {
   vertical-align: middle;
   font-variation-settings:
@@ -228,7 +232,8 @@ nav {
   z-index: 100;
 }
 
-nav a {
+nav a,
+.donate-button-nav {
   color: #fff;
   text-decoration: none;
   font-family: "Roboto", sans-serif;
@@ -242,6 +247,16 @@ nav a {
   align-items: center;
   height: 60px;
   box-sizing: border-box;
+}
+
+.donate-button-nav {
+  background-color: var(--green-accent);
+  border: 0;
+  color: #000;
+}
+
+.donate-button-nav:hover {
+  background-color: var(--green-accent-hover);
 }
 
 nav a:not(.nav-action):hover {

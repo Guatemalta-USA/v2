@@ -23,7 +23,7 @@ export async function renderImpactPage(mainElement: HTMLElement) {
             icon: "add",
             i18n: "start_new_project_btn"
         });
-        // newProjectButton.addEventListener("click", () => navigateTo("/impact/editproject"));
+        newProjectButton.addEventListener("click", () => router.navigateTo("/impact/new"));
         actionButtons.appendChild(newProjectButton);
     }
 

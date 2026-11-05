@@ -20,7 +20,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { state } from "../modules/state.module";
-import type { PageContents } from "../models/page.model";
+import { PageContents } from "../models/page.model";
 import { Post } from "../models/post.model";
 import type { Profile } from "../models/profile.model";
 import { Project, type ProjectInfo } from "../models/project.model";
@@ -54,19 +54,46 @@ function slugify(text: string): string {
         .replace(/-+$/, '');
 }
 
-export async function addPage(pageData: PageContents): Promise<void> {
+// Pages
+export async function addPage(pageId: string, pageData: PageContents): Promise<void> {
     try {
-        const docRef = doc(db, "pages", pageData.pageName);
-        await setDoc(docRef, pageData);
-        state.setPage(pageData.pageName, pageData);
-        console.log(`Page "${pageData.pageName}" created successfully.`);
+        const docRef = doc(db, "pages", pageId);
+        await setDoc(docRef, pageData.toFirestore());
+        state.setPage(pageId, pageData);
+        console.log(`Page "${pageId}" created successfully.`);
     } catch (error) {
         console.error("Error adding page:", error);
         throw new Error("Failed to create the page.");
     }
 }
 
-// Pages
+export interface PageSummary {
+    id: string;
+    pageName: { en: string; es: string };
+}
+
+export async function getAllPageSummaries(): Promise<PageSummary[]> {
+    try {
+        const querySnapshot = await getDocs(collection(db, "pages"));
+        const summaries: PageSummary[] = [];
+
+        querySnapshot.forEach((docSnap) => {
+            const rawData = docSnap.data();
+            const pageInstance = PageContents.fromFirestore(rawData);
+
+            summaries.push({
+                id: docSnap.id,
+                pageName: pageInstance.pageName
+            });
+        });
+
+        return summaries;
+    } catch (error) {
+        console.error("Error fetching page summaries:", error);
+        throw new Error("Could not load page list.");
+    }
+}
+
 export async function getPageContents(pageName: string): Promise<PageContents | null> {
     const cachedPage = state.getPage(pageName);
     if (cachedPage) {
@@ -78,9 +105,10 @@ export async function getPageContents(pageName: string): Promise<PageContents | 
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            const data = docSnap.data() as PageContents;
-            state.setPage(pageName, data);
-            return data;
+            const rawData = docSnap.data();
+            const pageInstance = PageContents.fromFirestore(rawData);
+            state.setPage(pageName, pageInstance);
+            return pageInstance;
         } else {
             console.warn(`Page "${pageName}" not found!`);
             return null;
@@ -91,24 +119,34 @@ export async function getPageContents(pageName: string): Promise<PageContents | 
     }
 }
 
-export async function updatePageContents(pageName: string, updates: Partial<PageContents>): Promise<void> {
-    const docRef = doc(db, "pages", pageName);
-    const payload: Record<string, any> = {
-        ...updates,
-        pageName: pageName,
-        lastUpdated: serverTimestamp()
-    };
+export async function updatePageContents(pageName: string, pageData: PageContents): Promise<void> {
+    try {
+        const docRef = doc(db, "pages", pageName);
+        
+        pageData.lastUpdated = serverTimestamp() as any;
 
-    if (updates.content) {
-        delete payload.content;
-        payload['content.en'] = updates.content.en || [];
-        payload['content.es'] = updates.content.es || [];
+        await setDoc(docRef, pageData.toFirestore(), { merge: true });
+        
+        state.setPage(pageName, pageData);
+    } catch (error) {
+        console.error("Error updating page contents:", error);
+        throw new Error("Could not update page contents.");
     }
+}
 
-    await setDoc(docRef, payload, { merge: true });
-    
-    const existing = state.getPage(pageName) || {};
-    state.setPage(pageName, { ...existing, ...updates });
+export async function deletePageContents(pageName: string): Promise<void> {
+    try {
+        const docRef = doc(db, "pages", pageName);
+        await deleteDoc(docRef);
+        // Clear or remove the page entry from local state cache if applicable
+        if (state.setPage) {
+            state.setPage(pageName, null);
+        }
+        console.log(`Page "${pageName}" deleted successfully.`);
+    } catch (error) {
+        console.error("Error deleting page:", error);
+        throw new Error("Could not delete the page. Please check permissions.");
+    }
 }
 
 // Profiles
@@ -417,7 +455,10 @@ export async function getAllProjects(): Promise<Project[]> {
 
 export async function getProjectsByStatus(isCurrent: boolean): Promise<Project[]> {
     const projects = await getAllProjects();
-    return projects.filter(p => p.isCurrent === isCurrent && p.published === true);
+    
+    return projects
+        .filter(p => p.isCurrent === isCurrent && p.published === true)
+        .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
 }
 
 export async function getUnpublishedProjects(): Promise<Project[]> {

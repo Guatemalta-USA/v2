@@ -1,4 +1,4 @@
-import { createLink, createSocialLink, donateListModal, makeElement } from "./utils.js";
+import { createLink, createMessage, createSocialLink, donateListModal, makeElement } from "./utils.js";
 import i18n, { updateContent } from "./i18n.js";
 import { signOutUser } from "../services/auth.service.ts.js";
 import { getDonateButtonList } from "../services/firebase.service.ts.js";
@@ -59,9 +59,12 @@ export function loadNav() {
 
     try {
       const donateButtonLinks = await getDonateButtonList();
-
       if (!donateButtonLinks || donateButtonLinks.length === 0) {
-        router.navigateTo("/donate");
+        createMessage({ 
+          messageBody: "No active donation projects found at the moment.", 
+          location: "main-message", 
+          type: "error" 
+        });
         return;
       }
 
@@ -96,14 +99,17 @@ export function loadNav() {
     const { label, path, children, i18n: i18nKey } = item;
 
     if (path === "donate") {
-      const donateLink = createLink(label, "donate-nav-btn", false);
-      donateLink.setAttribute("data-path", "/donate");
-      if (i18nKey) donateLink.setAttribute("data-i18n", i18nKey);
+        // Create it as a native button element instead of a link
+        const donateBtn = document.createElement("button");
+        donateBtn.type = "button";
+        donateBtn.className = "donate-button-nav";
+        donateBtn.textContent = label;
+        donateBtn.setAttribute("data-path", "/donate");
+        if (i18nKey) donateBtn.setAttribute("data-i18n", i18nKey);
 
-      donateLink.addEventListener("click", handleDonateClick);
-      donateLink.classList.add("donate-button");
+        donateBtn.addEventListener("click", handleDonateClick);
 
-      nav.appendChild(donateLink);
+        nav.appendChild(donateBtn);
     } else if (children && children.length > 0) {
       const dropdownContainer = document.createElement("div");
       dropdownContainer.className = "nav-dropdown-container";

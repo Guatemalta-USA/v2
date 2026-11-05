@@ -2,18 +2,30 @@ import type { Timestamp } from "firebase/firestore";
 import type { LocalizedContent, LocalizedString } from "./helper.model";
 
 export class PageContents {
-    public pageName: string;
+    public pageName: LocalizedString;
     public lastUpdated: Timestamp;
     public content: LocalizedContent;
 
     constructor(
-        pageName: string,
+        pageName: LocalizedString | string,
         lastUpdated: Timestamp,
         content: LocalizedContent
     ) {
-        this.pageName = pageName;
+        // Normalize pageName to LocalizedString if a plain string was passed
+        if (typeof pageName === 'string') {
+            this.pageName = { en: pageName, es: '' };
+        } else {
+            this.pageName = {
+                en: pageName?.en || '',
+                es: pageName?.es || ''
+            };
+        }
+
         this.lastUpdated = lastUpdated;
-        this.content = content;
+        this.content = {
+            en: content?.en || [],
+            es: content?.es || []
+        };
     }
 
     private sanitizeData(data: any): any {
@@ -42,34 +54,41 @@ export class PageContents {
 
     toFirestore(): Record<string, any> {
         return {
-            pageName: this.pageName,
+            pageName: {
+                en: this.sanitizeData(this.pageName.en),
+                es: this.sanitizeData(this.pageName.es)
+            },
             lastUpdated: this.lastUpdated,
             content: {
-                en: this.sanitizeData((this.content as Record<string, any>)?.en ?? ''),
-                es: this.sanitizeData((this.content as Record<string, any>)?.es ?? '')
+                en: this.sanitizeData(this.content.en),
+                es: this.sanitizeData(this.content.es)
             }
-        }
+        };
     }
 
     static fromFirestore(data: Record<string, any>): PageContents {
-        let content: LocalizedContent | LocalizedString;
+        let pageName: LocalizedString;
+        if (data.pageName && typeof data.pageName === 'object' && ('en' in data.pageName || 'es' in data.pageName)) {
+            pageName = {
+                en: data.pageName.en || '',
+                es: data.pageName.es || ''
+            };
+        } else if (typeof data.pageName === 'string') {
+            pageName = { en: data.pageName, es: '' };
+        } else {
+            pageName = { en: '', es: '' };
+        }
+
+        let content: LocalizedContent;
         if (data.content && typeof data.content === 'object' && ('en' in data.content || 'es' in data.content)) {
             content = {
-                en: data.content.en ?? '',
-                es: data.content.es ?? ''
-            }
-        } else if (data.content) {
-            content = {
-                en: data.content,
-                es: ''
-            }
+                en: data.content.en ?? [],
+                es: data.content.es ?? []
+            };
         } else {
-            content = { en: '', es: '' }
+            content = { en: data.content ?? [], es: [] };
         }
-        return new PageContents(
-            data.pageName,
-            data.lastUpdated,
-            content
-        )
+
+        return new PageContents(pageName, data.lastUpdated, content);
     }
 }

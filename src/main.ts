@@ -21,6 +21,9 @@ import './css/grid.css';
 import './css/form.css';
 import './css/quill.css';
 import { renderProjectPage } from "./views/project.view.js";
+import { renderEditPostView } from "./views/editBlogPost.view.js";
+import { renderEditProjectView } from "./views/editProject.view.js";
+import { renderEditPageView } from "./views/editPage.view.js";
 
 const mainElement = document.querySelector("main") as HTMLElement;
 
@@ -31,7 +34,7 @@ loadNav();
 loadFooter();
 
 async function initApp() {
-
+  // 1. Define all your routes first
   router.addRoute("/", () => {
     state.setPageContext({ parent: "home" });
     renderHomepage(mainElement);
@@ -42,19 +45,29 @@ async function initApp() {
     renderHomepage(mainElement);
   });
 
+  router.addRoute("/new-page", () => {
+    state.setPageContext({page: "New Page"});
+    renderEditPageView(mainElement);
+  })
+
   router.addRoute("/about", () => {
     state.setPageContext({ parent: "about", page: "About Us" });
     renderAboutPage(mainElement);
   });
 
   router.addRoute("/admin", () => {
-    state.setPageContext({parent: "admin", page: "Admin"});
+    state.setPageContext({ parent: "admin", page: "Admin" });
     renderAdminPage(mainElement);
   });
 
   router.addRoute("/blog", () => {
     state.setPageContext({ parent: "blog", page: "Blog" });
     renderBlogPage(mainElement);
+  });
+
+  router.addRoute("/blog/new", () => {
+    state.setPageContext({parent: "blog", page: "New Blog Post"});
+    renderEditPostView(mainElement);
   });
 
   router.addRoute("/blog/:id", (params) => {
@@ -66,7 +79,7 @@ async function initApp() {
   router.addRoute("/blog/:id/edit", (params) => {
     state.setPageContext({ parent: "blog", page: `Edit ${params.id}` });
     const postId = params.id;
-    console.log(`will send to ${postId} edit`);
+    renderEditPostView(mainElement, postId);
   });
 
   router.addRoute("/donate", () => {
@@ -85,6 +98,11 @@ async function initApp() {
     renderImpactPage(mainElement);
   });
 
+  router.addRoute("/impact/new", () => {
+    state.setPageContext({ parent: "impact", page: "New Project" });
+    renderEditProjectView(mainElement);
+  });
+
   router.addRoute("/impact/:id", (params) => {
     state.setPageContext({ parent: "impact", page: params.id });
     const projectId = params.id;
@@ -94,21 +112,19 @@ async function initApp() {
   router.addRoute("/impact/:id/edit", (params) => {
     state.setPageContext({ parent: "impact", page: `Edit ${params.id}` });
     const projectId = params.id;
-    console.log(`will send to ${projectId} edit`);
+    renderEditProjectView(mainElement, projectId);
   });
 
   router.addRoute("/login", async () => {
     createMessage({ messageBody: "Opening Google sign-in window", location: "main-message", type: "info" });
     try {
       const result = await signInWithGooglePopup();
-      //If successful sign in with Google, close the modal and display the message
       const user = result.user;
       if (user) {
-        //Close the sign in modal
         createMessage({ messageBody: `Welcome ${user.displayName}`, location: "main-message", type: "check_circle", autoCloseSeconds: 5 });
       }
     } catch (error: any) {
-      let errorMessage = "Google sign-in failed"
+      let errorMessage = "Google sign-in failed";
       if (error.code === "auth/popup-closed-by-user") {
         errorMessage = "Sign-In window closed";
       } else if (error.code === "auth/cancelled-popup-request") {
@@ -128,7 +144,6 @@ async function initApp() {
 
   router.addRoute("/sponsor-a-child", () => {
     state.setPageContext({ parent: "impact", page: "Sponsor A Child" });
-    // Add sponsor a child view render logic here
   });
 
   router.addRoute('/:id', (params) => {
@@ -137,27 +152,40 @@ async function initApp() {
     renderDynamicPage(mainElement, pageId);
   });
 
+  router.addRoute("/:id/edit", (params) => {
+    state.setPageContext({ page: `Edit params.id` });
+    const pageId = params.id;
+    renderEditPageView(mainElement, pageId);
+  });
+
   router.addRoute('*', () => {
     state.setPageContext({ page: "Not Found" });
     const attemptedPath = window.location.pathname.replace(/^\/+/, '');
     renderNotFound(mainElement, attemptedPath);
   });
 
-  onAuthStateChanged(auth, async (user) => {
-    if (user?.uid !== state.currentUser?.uid) {
-        state.setCurrentUser(user);
-        state.setCurrentRole(null);
-        try {
-            if (user) {
-                const role = await getUserRole(user.uid);
-                state.setCurrentRole(role);
-            }
-        } catch (error: any) {
-            createMessage({ messageBody: error.message || error, location: "main-message", type: "error" });
-        }
-    }
-});
+  // 2. Handle Auth state resolution BEFORE initializing the router
+  await new Promise<void>((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      unsubscribe();
 
+      if (user) {
+        state.setCurrentUser(user);
+        try {
+          const role = await getUserRole(user.uid);
+          state.setCurrentRole(role);
+        } catch (error: any) {
+          createMessage({ messageBody: error.message || error, location: "main-message", type: "error" });
+        }
+      } else {
+        state.setCurrentUser(null);
+        state.setCurrentRole(null);
+      }
+      resolve();
+    });
+  });
+
+  // 3. Start the router only after user & role are fully established
   router.init();
 }
 

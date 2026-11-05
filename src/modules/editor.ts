@@ -1,11 +1,12 @@
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import imageCompression from 'browser-image-compression';
-import 'quill-resize-module';
 import { createMessage, formatDate, makeElement, promptModal } from './utils';
 import i18n, { updateContent, getResolvedLanguage } from './i18n';
 import { registerCustomQuillBlots } from './quillBlots';
 import { getPageContents, updatePageContents } from '../services/firebase.service.ts';
+import { PageContents } from '../models/page.model.ts';
+import { Timestamp } from 'firebase/firestore';
 
 function extractOps(langData: any): any[] {
     if (!langData) return [];
@@ -39,6 +40,7 @@ function getInitialLanguage(): 'en' | 'es' {
 }
 
 export class TheEditor {
+    private static activeInstance: TheEditor | null = null;
     public quill!: Quill;
     public currentPage: string | null = null;
     private deletedImageURLs: string[] = [];
@@ -54,6 +56,12 @@ export class TheEditor {
     };
 
     constructor() {
+        // Automatically destroy any previous active editor instance to prevent observer stacking
+        if (TheEditor.activeInstance) {
+            TheEditor.activeInstance.destroy();
+        }
+        TheEditor.activeInstance = this;
+
         const container = document.getElementById('editor-container');
         if (!container) {
             throw new Error(`Editor container with ID "#editor-container" was not found in the DOM.`);
@@ -69,7 +77,7 @@ export class TheEditor {
                         [{ header: [1, 2, 3, false] }],
                         ['bold', 'italic', 'underline'],
                         [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        ['givebutter', 'action-link', 'link', 'nav-link', 'mailto'],
+                        ['givebutter', 'action-link', 'nav-link', 'link', 'mailto'],
                         ['table', 'image', 'video'],
                         ['clean']
                     ],
@@ -103,31 +111,50 @@ export class TheEditor {
                             }
                         },
                         'action-link': async () => {
-                            const actionLinkResponse = await promptModal("Enter Action URL", ["url..."], "Add Action Button", false);
+                            const savedRange = this.quill.getSelection();
+                            const actionLinkResponse = await promptModal("Enter Action URL or internal page path", ["e.g., https://... or about"], "Add Action Button", false);
+                            
                             if (actionLinkResponse) {
-                                const url = actionLinkResponse[0];
-                                if (url) this.quill.format('actionLink', url);
+                                const rawInput = actionLinkResponse[0]?.trim();
+                                if (rawInput) {
+                                    // Prepend slash if it's an internal path (doesn't start with http/https)
+                                    const actionUrl = (rawInput.startsWith('http://') || rawInput.startsWith('https://'))
+                                        ? rawInput
+                                        : (rawInput.startsWith('/') ? rawInput : `/${rawInput}`);
+
+                                    this.quill.focus();
+                                    if (savedRange && savedRange.length > 0) {
+                                        this.quill.formatText(savedRange.index, savedRange.length, 'actionLink', actionUrl);
+                                    } else {
+                                        this.quill.format('actionLink', actionUrl);
+                                    }
+                                }
                             }
                         },
                         'nav-link': async () => {
+                            const savedRange = this.quill.getSelection();
+                            const insertIndex = savedRange ? savedRange.index : this.quill.getLength() - 1;
+                            const selectLength = savedRange ? savedRange.length : 0;
+
                             const pageResponse = await promptModal(
                                 "Enter internal page path",
                                 ["e.g., about or donate"],
                                 "Insert Page Link",
                                 false
                             );
+
                             if (pageResponse) {
                                 let page = pageResponse[0]?.trim();
                                 if (page) {
                                     const internalPath = page.startsWith('/') ? page : `/${page}`;
-                                    const range = this.quill.getSelection();
 
-                                    if (range && range.length > 0) {
-                                        this.quill.format('link', internalPath);
+                                    this.quill.focus();
+
+                                    if (selectLength > 0) {
+                                        this.quill.formatText(insertIndex, selectLength, 'link', internalPath);
                                     } else {
-                                        const index = range ? range.index : 0;
-                                        this.quill.insertText(index, internalPath, 'link', internalPath);
-                                        this.quill.setSelection(index + internalPath.length);
+                                        this.quill.insertText(insertIndex, internalPath, 'link', internalPath);
+                                        this.quill.setSelection(insertIndex + internalPath.length);
                                     }
                                 }
                             }
@@ -193,18 +220,6 @@ export class TheEditor {
             }
         });
 
-        // Initialize Image Resize Module manually
-        const ImageResizeModule = Quill.import('modules/imageResize') as any;
-        (this.quill as any).theme.modules.imageResize = new ImageResizeModule(this.quill, {
-            displaySize: true,
-            modules: ['Resize', 'DisplaySize'],
-            handleStyles: {
-                backgroundColor: '#a855f7',
-                border: 'none',
-                color: 'white'
-            }
-        });
-
         this.quill.on('selection-change', (range) => {
             if (!range) return;
             setTimeout(() => {
@@ -234,7 +249,6 @@ export class TheEditor {
             es: sanitizeOps(content?.es)
         };
 
-        // Load initial tab content cleanly
         let initialOps = this.contentState[this.currentTab];
         if (this.currentTab === 'es' && isEmptyDelta(initialOps)) {
             initialOps = this.contentState.en;
@@ -256,24 +270,22 @@ export class TheEditor {
     public switchLanguageTab(lang: 'en' | 'es') {
         if (this.currentTab === lang) return;
 
-        // Save current tab editor content into memory
-        this.contentState[this.currentTab] = this.quill.getContents().ops;
+        // 1. Save current active tab editor content into memory before switching
+        const currentOps = this.quill.getContents().ops;
+        this.contentState[this.currentTab] = Array.isArray(currentOps) ? currentOps : [];
 
-        // Switch active target
+        // 2. Switch active language key
         this.currentTab = lang;
 
-        // Temporarily pause image delete tracking when swapping document contents
+        // 3. Temporarily pause image delete observer
         if (this.deleteObserver) this.deleteObserver.disconnect();
 
-        // Determine target content with fallback to English if Spanish is empty
-        let nextContent = this.contentState[lang];
-        if (lang === 'es' && isEmptyDelta(nextContent)) {
-            nextContent = this.contentState.en;
-        }
+        // 4. Load target language content directly without forcing English fallback
+        const nextContent = this.contentState[lang] || [];
 
-        this.quill.setContents((nextContent || []) as any);
+        this.quill.setContents(nextContent as any);
 
-        // Resync tracked images and reconnect observer
+        // 5. Resync image set and reconnect observer
         this.trackedImages = new Set(this.getImagesFromEditor());
         if (this.deleteObserver) {
             this.deleteObserver.observe(this.quill.root, { childList: true, subtree: true });
@@ -362,20 +374,25 @@ export class TheEditor {
         </svg>`;
         }
 
+        const externalLink = document.querySelector(".ql-link");
+        if (externalLink) {
+            externalLink.setAttribute('data-title', "Insert an external link");
+            externalLink.innerHTML = `
+            <svg viewBox="0 0 18 18">
+                <path class="ql-stroke" d="M5 13L13 5M8 5h5v5" stroke="#a855f7" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>`;
+        }
+
         const navPicker = document.querySelector('.ql-nav-link');
         if (navPicker) {
             navPicker.setAttribute('data-label', 'App Pages');
             navPicker.setAttribute("data-title", "Insert a link to an internal page");
+            navPicker.innerHTML = `
+            <svg viewBox="0 0 18 18">
+                <path class="ql-stroke" d="M7 11l4-4" stroke="#a855f7" fill="none" stroke-width="1.8" stroke-linecap="round"></path>
+                <path class="ql-stroke" d="M7 5H5a2 2 0 00-2 2v4a2 2 0 002 2h2m4-8h2a2 2 0 012 2v4a2 2 0 01-2 2h-2" stroke="#a855f7" fill="none" stroke-width="1.8" stroke-linecap="round"></path>
+            </svg>`;
         }
-
-        const navItems = document.querySelectorAll('.ql-nav-link .ql-picker-item');
-        navItems.forEach(item => {
-            const val = item.getAttribute('data-value');
-            if (val) item.textContent = val;
-        });
-
-        const externalLink = document.querySelector(".ql-link");
-        if (externalLink) externalLink.setAttribute('data-title', "Insert an external link");
 
         const actionBtn = document.querySelector('.ql-action-link');
         if (actionBtn) {
@@ -502,7 +519,6 @@ export class TheEditor {
     }
 
     public async prepareContentForSave(): Promise<{ en: any[]; es: any[] }> {
-        // Sync current active editor content
         const currentOps = this.quill.getContents().ops;
         this.contentState[this.currentTab] = Array.isArray(currentOps) ? currentOps : [];
 
@@ -587,9 +603,24 @@ export class TheEditor {
         if (!this.currentPage) return;
         try {
             const localizedContent = await this.prepareContentForSave();
-            await updatePageContents(this.currentPage, { content: localizedContent });
+            let pageData = await getPageContents(this.currentPage);
+            
+            if (!pageData) {
+                pageData = new PageContents(
+                    { en: this.currentPage, es: '' },
+                    Timestamp.now(),
+                    localizedContent
+                );
+            } else {
+                pageData.content = localizedContent;
+                pageData.lastUpdated = Timestamp.now();
+            }
+
+            await updatePageContents(this.currentPage, pageData);
+            
             createMessage({ messageBody: "Changes saved!", location: "main-message", type: "check_circle" });
         } catch (err) {
+            console.error("Error saving editor contents:", err);
             createMessage({ messageBody: "Error saving to database.", location: "main-message", type: "error" });
         }
     }
@@ -623,6 +654,10 @@ export class TheEditor {
             this.deleteObserver = null;
         }
         this.activeImageElement = null;
+
+        if (TheEditor.activeInstance === this) {
+            TheEditor.activeInstance = null;
+        }
     }
 
     public getHTML(): string {

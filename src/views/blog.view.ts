@@ -146,7 +146,7 @@ export async function renderBlogPage(mainElement: HTMLElement) {
                         buttonClass: "accent-button",
                         icon: "add"
                     });
-                    //newPostButton.addEventListener("click", () => navigateTo("/blog/editpost"));
+                    newPostButton.addEventListener("click", () => router.navigateTo("/blog/new"));
                     adminActions.appendChild(newPostButton);
                 }
             } catch (err) {

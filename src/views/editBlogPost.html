@@ -1,0 +1,32 @@
+<div class="container">
+    <div id="loading">
+        <div class="loader"></div>
+        <h2 data-i18n="loading">Loading...</h2>
+    </div>
+    <div id="admin-controls" class="hide"></div>
+    <div id="edit-section" class="hide">
+        <div class="language-tabs" id="language-tabs">
+            <button type="button" id="tab-lang-en" class="tab-btn active" data-lang="en">English</button>
+            <button type="button" id="tab-lang-es" class="tab-btn" data-lang="es">Español</button>
+        </div>
+        <div id="post-details">
+            <input type="text" placeholder="Post Title" name="post-title-input" id="post-title-input" />
+            <input type="text" placeholder="Author" name="author-input" id="author-input" />
+            <div>
+                <label for="link-to-project">Link to Project: </label>
+                <select id="link-to-project" name="link-to-project"></select>
+            </div>
+        </div>
+        <div id="editor-container"></div>
+        <div class="actions">
+            <button id="delete-btn" class="delete-button">
+                <span class="material-symbols-outlined">delete</span>
+                <span data-i18n="delete_project">Delete Post</span>
+            </button>
+            <button id="save-btn" class="accent-button">
+                <span class="material-symbols-outlined">save</span>
+                <span data-i18n="save_project">Save Post</span>
+            </button>
+        </div>
+    </div>
+</div>
