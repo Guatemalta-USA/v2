@@ -1,6 +1,7 @@
 import Quill from 'quill';
 import { createButton } from './utils';
 import { showLightbox } from './imageGallery';
+import { openGivebutterModal } from '../services/givebutter.service';
 
 interface BlotFormat {
     new(...args: any[]): any;
@@ -126,6 +127,7 @@ export class YouTubeVideo extends VideoFormat {
 }
 
 // Givebutter Embed
+// Givebutter Embed
 const BlockEmbed = Quill.import('blots/block/embed') as any;
 
 export class GivebutterWidgetBlot extends BlockEmbed {
@@ -138,16 +140,36 @@ export class GivebutterWidgetBlot extends BlockEmbed {
             buttonText: "Donate Now", 
             buttonType: "button", 
             buttonId: "", 
-            buttonClass: "action-link", 
+            buttonClass: "action-link donate-button", 
             icon: "favorite", 
             i18n: "donate_now" 
         });
         node.setAttribute('data-id', widgetId);
 
-        const idTag = document.createElement('span');
-        idTag.setAttribute('class', 'donate-id-tag');
-        idTag.innerText = ` (${widgetId})`;
-        node.appendChild(idTag);
+        // Check if we are currently inside the editor view or a read-only viewer
+        const isEditing = document.getElementById('editor-container') !== null;
+
+        if (isEditing) {
+            // Show the form ID badge only when editing/authoring
+            const idTag = document.createElement('span');
+            idTag.setAttribute('class', 'donate-id-tag');
+            idTag.style.cssText = "margin-left: 6px; opacity: 0.7; font-size: 0.85em;";
+            idTag.innerText = `(${widgetId})`;
+            node.appendChild(idTag);
+        } else {
+            // Attach click handler for public visitors viewing published pages/posts
+            node.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                try {
+                    console.log("Opening donate form for ID:", widgetId);
+                    openGivebutterModal(widgetId);
+                } catch (err) {
+                    console.error("Failed to open donation form:", err);
+                }
+            });
+        }
 
         return node;
     }

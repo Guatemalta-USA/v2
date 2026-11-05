@@ -45,6 +45,28 @@ async function initApp() {
     renderHomepage(mainElement);
   });
 
+  router.addRoute("/login", async () => {
+    createMessage({ messageBody: "Opening Google sign-in window", location: "main-message", type: "info" });
+    try {
+      const result = await signInWithGooglePopup();
+      const user = result.user;
+      if (user) {
+        createMessage({ messageBody: `Welcome ${user.displayName}`, location: "main-message", type: "check_circle", autoCloseSeconds: 5 });
+      }
+    } catch (error: any) {
+      let errorMessage = "Google sign-in failed";
+      if (error.code === "auth/popup-closed-by-user") {
+        errorMessage = "Sign-In window closed";
+      } else if (error.code === "auth/cancelled-popup-request") {
+        errorMessage = "Sign-In request already in progress";
+      } else {
+        errorMessage = `Error: ${error.message}`;
+      }
+      createMessage({ messageBody: errorMessage, location: "main-message", type: "error" });
+      console.error("Google sign-in error details:", error);
+    }
+  });
+
   router.addRoute("/new-page", () => {
     state.setPageContext({page: "New Page"});
     renderEditPageView(mainElement);
@@ -113,28 +135,6 @@ async function initApp() {
     state.setPageContext({ parent: "impact", page: `Edit ${params.id}` });
     const projectId = params.id;
     renderEditProjectView(mainElement, projectId);
-  });
-
-  router.addRoute("/login", async () => {
-    createMessage({ messageBody: "Opening Google sign-in window", location: "main-message", type: "info" });
-    try {
-      const result = await signInWithGooglePopup();
-      const user = result.user;
-      if (user) {
-        createMessage({ messageBody: `Welcome ${user.displayName}`, location: "main-message", type: "check_circle", autoCloseSeconds: 5 });
-      }
-    } catch (error: any) {
-      let errorMessage = "Google sign-in failed";
-      if (error.code === "auth/popup-closed-by-user") {
-        errorMessage = "Sign-In window closed";
-      } else if (error.code === "auth/cancelled-popup-request") {
-        errorMessage = "Sign-In request already in progress";
-      } else {
-        errorMessage = `Error: ${error.message}`;
-      }
-      createMessage({ messageBody: errorMessage, location: "main-message", type: "error" });
-      console.error("Google sign-in error details:", error);
-    }
   });
 
   router.addRoute("/mailinglist", () => {
