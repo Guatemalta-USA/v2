@@ -307,7 +307,7 @@ export function loadFooter() {
   privatePolicy.textContent = "Privacy Policy";
   privatePolicy.className = "link";
   privatePolicy.onclick = function () {
-    router.navigateTo("/privatepolicy");
+    router.navigateTo("/privacy-policy");
   };
   privatePolicy.setAttribute("data-i18n", "privacy_policy");
   ul.appendChild(privatePolicy);
@@ -316,7 +316,7 @@ export function loadFooter() {
   financial.textContent = "Financial Transparency";
   financial.className = "link";
   financial.onclick = function () {
-    router.navigateTo("/financialtransparency");
+    router.navigateTo("/financial-transparency");
   };
   financial.setAttribute("data-i18n", "financial_transparency");
   ul.appendChild(financial);

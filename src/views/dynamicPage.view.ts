@@ -15,14 +15,12 @@ export async function renderDynamicPage(container: HTMLElement, pageId: string) 
 
     const loadingEl = document.getElementById("loading");
     const pageContainer = document.getElementById("page-container");
-    const displayTitleEl = document.getElementById("display-title");
     const viewerContainer = document.getElementById("viewer-container");
     const lastUpdatedEl = document.getElementById("lastUpdated");
     const adminActionsEl = document.getElementById("admin-actions");
 
     try {
         const pageData = await getPageContents(pageId);
-        console.log(JSON.stringify(pageData))
         if (!pageData) {
             createMessage({ messageBody: "Page not found.", location: "main-message", type: "error" });
             router.navigateTo("/");
@@ -32,25 +30,56 @@ export async function renderDynamicPage(container: HTMLElement, pageId: string) 
         const renderPageContent = async () => {
             const lang = (getResolvedLanguage() || 'en').slice(0, 2) === 'es' ? 'es' : 'en';
 
-            // 1. Resolve Localized Title & Page Context
-            const titleText = (typeof pageData.pageName === 'object' && pageData.pageName !== null)
-                ? (pageData.pageName[lang] || pageData.pageName['en'] || pageId)
-                : (pageData.pageName || pageId);
+            // Helper to check if a content/title value is effectively empty
+            const hasContent = (val: any): boolean => {
+                if (!val) return false;
+                if (typeof val === 'string' && val.trim() !== '') return true;
+                if (Array.isArray(val) && val.length > 0) {
+                    // Check if array has more than just an empty newline insert
+                    return !(val.length === 1 && val[0].insert === '\n');
+                }
+                if (typeof val === 'object') {
+                    if (Array.isArray(val.ops) && val.ops.length > 0) {
+                        return !(val.ops.length === 1 && val.ops[0].insert === '\n');
+                    }
+                    if (val.en || val.es) {
+                        return hasContent(val[lang]) || hasContent(val['en']);
+                    }
+                }
+                return false;
+            };
 
+            // 1. Resolve Localized Title with English Fallback
+            let titleText = pageId;
+            if (typeof pageData.pageName === 'object' && pageData.pageName !== null) {
+                const requestedTitle = pageData.pageName[lang];
+                const englishTitle = pageData.pageName['en'];
+                titleText = (lang === 'es' && hasContent(requestedTitle)) ? requestedTitle : (englishTitle || pageId);
+            } else if (typeof pageData.pageName === 'string') {
+                titleText = pageData.pageName;
+            }
+
+            const displayTitleEl = document.getElementById("display-title");
             if (displayTitleEl) {
                 displayTitleEl.textContent = titleText;
             }
             state.setPageContext({ parent: "pages", page: titleText });
 
-            // 2. Render Read-Only Quill Content
+            // 2. Render Read-Only Quill Content with English Fallback
             if (viewerContainer) {
                 viewerContainer.innerHTML = '';
                 const quillContainer = document.createElement('div');
                 viewerContainer.appendChild(quillContainer);
 
-                const rawContent = (typeof pageData.content === 'object' && pageData.content !== null)
-                    ? (pageData.content[lang] || pageData.content['en'] || [])
-                    : pageData.content;
+                let rawContent = [];
+                if (typeof pageData.content === 'object' && pageData.content !== null) {
+                    const requestedContent = pageData.content[lang];
+                    const englishContent = pageData.content['en'];
+                    
+                    rawContent = (lang === 'es' && hasContent(requestedContent)) ? requestedContent : (englishContent || []);
+                } else {
+                    rawContent = pageData.content;
+                }
 
                 // Safely unwrap Quill Delta formats or raw arrays from Firestore
                 let ops = [];

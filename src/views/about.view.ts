@@ -1,10 +1,12 @@
 import type { Profile } from "../models/profile.model";
 import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n";
 import { deleteImage, resizeImage, uploadImage } from "../modules/imageService";
-import { confirmDeleteModal, createButton, createMessage, makeElement } from "../modules/utils";
-import { getAllProfiles, addProfile, getProfilesByCountry, deleteProfile, updateProfile } from "../services/firebase.service.ts";
+import { confirmDeleteModal, createButton, createMessage, formatDate, makeElement } from "../modules/utils";
+import { getAllProfiles, addProfile, getProfilesByCountry, deleteProfile, updateProfile, getPageContents } from "../services/firebase.service.ts";
 import htmlContent from "./about.html?raw"
 import { state } from "../modules/state.module.ts";
+import Quill from "quill";
+import { router } from "../router.ts";
 
 // Track language change listener at module scope for cleanup
 let aboutLangListener: (() => void) | null = null;
@@ -13,7 +15,8 @@ export async function renderAboutPage(container: HTMLElement) {
     container.innerHTML = htmlContent;
 
     const loading = document.getElementById("loading");
-    const viewSection = document.getElementById("content-display") as HTMLElement;
+    const viewSection = document.getElementById("view-section") as HTMLElement;
+    const lastUpdatedEl = document.getElementById("last-updated") as HTMLElement;
     const profilesSection = document.getElementById("profiles-section") as HTMLElement;
     const modalRoot = document.getElementById("modal-root") as HTMLElement;
     const adminControls = document.getElementById("admin-controls") as HTMLElement;
@@ -22,6 +25,111 @@ export async function renderAboutPage(container: HTMLElement) {
     let editingProfileId: string | null = null;
     const countries: string[] = ["usa", "guatemala"];
     const contactForm = document.getElementById("contact-form") as HTMLFormElement;
+
+    // Track language listener to prevent duplicate subscriptions
+    let aboutPageLangListener: ((lng: string) => void) | null = null;
+
+    const renderPageContent = async () => {
+        const pageData = await getPageContents("About");
+        const lang = (getResolvedLanguage() || 'en').slice(0, 2) === 'es' ? 'es' : 'en';
+
+        // Helper to check if a content/title value is effectively non-empty
+        const hasContent = (val: any): boolean => {
+            if (!val) return false;
+            if (typeof val === 'string' && val.trim() !== '') return true;
+            if (Array.isArray(val) && val.length > 0) {
+                return !(val.length === 1 && val[0].insert === '\n');
+            }
+            if (typeof val === 'object' && val !== null) {
+                if (Array.isArray(val.ops) && val.ops.length > 0) {
+                    return !(val.ops.length === 1 && val.ops[0].insert === '\n');
+                }
+            }
+            return false;
+        };
+
+        if (viewSection) {
+            viewSection.innerHTML = '';
+            const quillContainer = document.createElement('div');
+            viewSection.appendChild(quillContainer);
+
+            let rawContent: any = [];
+            if (pageData && typeof pageData.content === 'object' && pageData.content !== null) {
+                const requestedContent = pageData.content[lang];
+                const englishContent = pageData.content['en'];
+
+                rawContent = (lang === 'es' && hasContent(requestedContent))
+                    ? requestedContent
+                    : (hasContent(englishContent) ? englishContent : (requestedContent || []));
+            } else if (pageData) {
+                rawContent = pageData.content;
+            }
+
+            let ops = [];
+            if (Array.isArray(rawContent)) {
+                ops = rawContent;
+            } else if (rawContent && typeof rawContent === 'object') {
+                if (Array.isArray((rawContent as any).ops)) {
+                    ops = (rawContent as any).ops;
+                } else {
+                    ops = [{ insert: JSON.stringify(rawContent) }];
+                }
+            } else if (typeof rawContent === 'string') {
+                ops = [{ insert: rawContent }];
+            }
+
+            const readOnlyQuill = new Quill(quillContainer, {
+                theme: 'snow',
+                readOnly: true,
+                modules: { toolbar: false }
+            });
+            readOnlyQuill.setContents(ops);
+        }
+
+        if (pageData && pageData.lastUpdated) {
+            lastUpdatedEl.innerHTML = '';
+            const rawDate = pageData.lastUpdated;
+            const date = ('toDate' in rawDate && typeof (rawDate as any).toDate === 'function')
+                ? (rawDate as any).toDate()
+                : new Date(rawDate as unknown as string);
+
+            const lastUpdatedP = makeElement("p", null, null, i18n.t('last_updated', { timestamp: formatDate(date, true) }));
+            lastUpdatedEl.appendChild(lastUpdatedP);
+        }
+
+        if (adminControls) {
+            adminControls.innerHTML = '';
+            if (state.currentRole === 'admin') {
+                adminControls.classList.remove('hide');
+                const editBtn = createButton({
+                    buttonText: "Edit Page",
+                    buttonId: "edit-page",
+                    buttonType: "button",
+                    buttonClass: "accent-button",
+                    icon: "edit",
+                    i18n: "button_edit"
+                });
+                editBtn.onclick = () => {
+                    router.navigateTo(`/About/edit`);
+                };
+                adminControls.appendChild(editBtn);
+            } else {
+                adminControls.classList.add('hide');
+            }
+        }
+    };
+
+    // Initial render pass
+    await renderPageContent();
+
+    // Subscribe to language changes for instant switching
+    if (aboutPageLangListener) {
+        i18n.off("languageChanged", aboutPageLangListener);
+    }
+    aboutPageLangListener = () => {
+        renderPageContent();
+    };
+    i18n.on("languageChanged", aboutPageLangListener);
 
     async function handleSubmit() {
         const addProfileForm = document.getElementById("add-profile-form") as HTMLFormElement;
@@ -167,7 +275,7 @@ export async function renderAboutPage(container: HTMLElement) {
 
                         const aboutElEN = makeElement("div", null, "profile-bio", null);
                         const aboutElEs = makeElement("div", null, "profile-bio", null);
-                        
+
                         const paragraphsEN = (currentProfile.about['en'] || '')
                             .split(/\r?\n/)
                             .map((p) => p.trim())
@@ -305,8 +413,7 @@ export async function renderAboutPage(container: HTMLElement) {
             body: formData,
             mode: "no-cors",
         })
-            .then((response) => {
-                console.log(response);
+            .then((_response) => {
                 createMessage(
                     {
                         messageBody: "Your comments have been sent to our team",

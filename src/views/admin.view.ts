@@ -416,6 +416,14 @@ export async function renderAdminPage(container: HTMLElement) {
     }, makeElement("tbody", null, null, null))
 
     table.append(headers, tbody);
-    pagesSection.append(pagesCardHeading, table);
+    const newPageBtn = createButton({
+        buttonText: "Create New Page",
+        buttonType: "button",
+        buttonId: "new-page-btn",
+        buttonClass: "accent-button",
+        icon: "add"
+    });
+    newPageBtn.addEventListener("click", () => router.navigateTo("/new-page"));
+    pagesSection.append(pagesCardHeading, table, newPageBtn);
 
 }
