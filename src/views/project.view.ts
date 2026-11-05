@@ -7,7 +7,6 @@ import 'quill/dist/quill.snow.css';
 import htmlContent from "./project.html?raw";
 import { getCampaignTotalById, getPostsWithLinkedProjectId, getProjectById } from "../services/firebase.service.ts";
 
-// Track language change listener for clean unsubscription
 let projectLangListener: ((lng: string) => void) | null = null;
 
 export async function renderProjectPage(container: HTMLElement, projectId: string) {
