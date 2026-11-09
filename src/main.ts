@@ -24,17 +24,16 @@ import { renderProjectPage } from "./views/project.view.js";
 import { renderEditPostView } from "./views/editBlogPost.view.js";
 import { renderEditProjectView } from "./views/editProject.view.js";
 import { renderEditPageView } from "./views/editPage.view.js";
+import { renderSponsorChildView } from "./views/sponsor-child.js";
 
 const mainElement = document.querySelector("main") as HTMLElement;
 
-// Initialize global services and layout templates once on load
 initGivebutter();
 loadHeader();
 loadNav();
 loadFooter();
 
 async function initApp() {
-  // 1. Define all your routes first
   router.addRoute("/", () => {
     state.setPageContext({ parent: "home" });
     renderHomepage(mainElement);
@@ -144,6 +143,7 @@ async function initApp() {
 
   router.addRoute("/sponsor-a-child", () => {
     state.setPageContext({ parent: "impact", page: "Sponsor A Child" });
+    renderSponsorChildView(mainElement);
   });
 
   router.addRoute('/:id', (params) => {
@@ -164,7 +164,6 @@ async function initApp() {
     renderNotFound(mainElement, attemptedPath);
   });
 
-  // 2. Handle Auth state resolution BEFORE initializing the router
   await new Promise<void>((resolve) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       unsubscribe();
@@ -185,7 +184,6 @@ async function initApp() {
     });
   });
 
-  // 3. Start the router only after user & role are fully established
   router.init();
 }
 
