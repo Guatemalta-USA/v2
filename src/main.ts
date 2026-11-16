@@ -69,7 +69,7 @@ async function initApp() {
   router.addRoute("/new-page", () => {
     state.setPageContext({page: "New Page"});
     renderEditPageView(mainElement);
-  })
+  });
 
   router.addRoute("/about", () => {
     state.setPageContext({ parent: "about", page: "About Us" });
@@ -89,6 +89,11 @@ async function initApp() {
   router.addRoute("/blog/new", () => {
     state.setPageContext({parent: "blog", page: "New Blog Post"});
     renderEditPostView(mainElement);
+  });
+
+  router.addRoute("/blog/post", () => {
+    state.setPageContext({ parent: "blog", page: "blog" });
+    renderBlogPost(mainElement, null);
   });
 
   router.addRoute("/blog/:id", (params) => {
@@ -122,6 +127,15 @@ async function initApp() {
   router.addRoute("/impact/new", () => {
     state.setPageContext({ parent: "impact", page: "New Project" });
     renderEditProjectView(mainElement);
+  });
+
+  router.addRoute("/eye", () => {
+    router.navigateTo("/impact/a-gift-of-sight-restoring-vision-and-hope-in-guatemala");
+  });
+
+  router.addRoute("/impact/project", () => {
+    state.setPageContext({ parent: "impact", page: "impact" });
+    renderProjectPage(mainElement, null);
   });
 
   router.addRoute("/impact/:id", (params) => {

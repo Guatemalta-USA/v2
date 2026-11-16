@@ -10,7 +10,7 @@ import { getPostById } from "../services/firebase.service.ts";
 // Track language change listener
 let blogLangListener: ((lng: string) => void) | null = null;
 
-export async function renderBlogPost(container: HTMLElement, postId: string) {
+export async function renderBlogPost(container: HTMLElement, postId: string | null) {
     container.innerHTML = htmlContent;
 
     const loadingEl = document.getElementById("loading");
@@ -20,9 +20,21 @@ export async function renderBlogPost(container: HTMLElement, postId: string) {
     const contentEl = document.getElementById("viewer-container");
     const adminActionsEl = document.getElementById("admin-actions");
     const lastUpdatedEl = document.getElementById("lastUpdated") as HTMLElement;
+    let pId: string = "";
+
+    if (!postId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const postIdParam = urlParams.get("id");
+        if (postIdParam) {
+            pId = postIdParam;
+            router.navigateTo(`/blog/${postIdParam}`);
+        }
+    } else {
+        pId = postId;
+    }
 
     try {
-        const post = await getPostById(postId);
+        const post = await getPostById(pId);
         if (!post) {
             createMessage({ messageBody: "Post not found.", location: "main-message", type: "error" });
             router.navigateTo("/blog");

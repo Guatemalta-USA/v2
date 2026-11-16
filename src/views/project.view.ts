@@ -9,7 +9,7 @@ import { getCampaignTotalById, getPostsWithLinkedProjectId, getProjectById } fro
 
 let projectLangListener: ((lng: string) => void) | null = null;
 
-export async function renderProjectPage(container: HTMLElement, projectId: string) {
+export async function renderProjectPage(container: HTMLElement, projectId: string | null) {
     container.innerHTML = htmlContent;
 
     const loadingEl = document.getElementById("loading");
@@ -20,16 +20,28 @@ export async function renderProjectPage(container: HTMLElement, projectId: strin
     const linkedPostsSection = document.getElementById("linked-posts");
     const lastUpdatedEl = document.getElementById("lastUpdated");
     const adminActionsEl = document.getElementById("admin-actions");
+    let projId: string = "";
+
+    if (!projectId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        let projectIdParam = urlParams.get("id");
+        if (projectIdParam) {
+            projId = projectIdParam;
+            router.navigateTo(`/impact/${projectIdParam}`);
+        }
+    } else {
+        projId = projectId;
+    }
 
     try {
-        const project = await getProjectById(projectId);
+        const project = await getProjectById(projId);
         if (!project) {
             createMessage({ messageBody: "Project not found.", location: "main-message", type: "error" });
             router.navigateTo("/impact");
             return;
         }
 
-        const linkedPosts = await getPostsWithLinkedProjectId(projectId);
+        const linkedPosts = await getPostsWithLinkedProjectId(projId);
 
         const renderProjectContent = async () => {
             const lang = (getResolvedLanguage() || 'en').slice(0, 2) === 'es' ? 'es' : 'en';
@@ -64,7 +76,7 @@ export async function renderProjectPage(container: HTMLElement, projectId: strin
                         customGoalBarContainer.append(customGoalBarInfo, customGoalBar);
                         goalBarContainer.appendChild(customGoalBarContainer);
                     } else {
-                        const totalRaised = await getCampaignTotalById(projectId);
+                        const totalRaised = await getCampaignTotalById(projId);
                         const customGoalBarContainer = makeElement("div", "custom-goal-bar-container", null, null);
                         const customGoalBarInfo = makeElement("div", null, "goal-info", null);
                         const totalRaisedH2 = makeElement("h2", null, null, `Total Raised: $${totalRaised.toLocaleString('en-US')}`);

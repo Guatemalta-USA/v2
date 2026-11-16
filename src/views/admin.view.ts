@@ -129,7 +129,7 @@ async function renderDonateListTable(tableContainer: HTMLElement) {
         dragCell.appendChild(dragIcon);
 
         const projectNameCell = makeElement("td", null, null, link["projectName"]);
-        const shareLink = `https://guatemaltausa.org/donate?id=${link["formId"]}`;
+        const shareLink = `https://guatemaltausa.org/donate/${link["formId"]}`;
         const shareLinkCell = makeElement("td", null, null, shareLink);
         shareLinkCell.addEventListener("click", async () => await copyToClipboard(shareLink));
 

@@ -26,7 +26,7 @@ export async function createDonateQRCodeWithLogo(url: string): Promise<HTMLCanva
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
 
-    QRCode.toCanvas(canvas, `https://www.guatemaltausa.org/donate?id=${url}`, { errorCorrectionLevel: 'H', width: 300, margin: 1 }, (error) => {
+    QRCode.toCanvas(canvas, `https://www.guatemaltausa.org/donate/${url}`, { errorCorrectionLevel: 'H', width: 300, margin: 1 }, (error) => {
       if (error) return reject(error);
 
       const ctx = canvas.getContext('2d');

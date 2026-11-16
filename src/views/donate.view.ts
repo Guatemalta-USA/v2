@@ -5,6 +5,14 @@ import { getDonateButtonList } from "../services/firebase.service.ts.ts";
 import htmlContent from "./donate.html?raw"
 
 export async function renderDonatePage(container: HTMLElement, formId?: string) {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let formIdParam = urlParams.get("id");
+    if (formIdParam) {
+        formId = formIdParam;
+        router.navigateTo(`/donate/${formIdParam}`);
+    }
+
     container.innerHTML = htmlContent;
 
     const blueContainer = document.getElementById("blue-container") as HTMLElement;
