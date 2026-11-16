@@ -1,8 +1,8 @@
 import type { ChildSponsorship } from "../models/sponsorship.model";
-import { updateContent } from "../modules/i18n";
-import { resizeImage, uploadImage, deleteImage } from "../modules/imageService";
+import { updateContent } from "../modules/i18n.module.ts";
+import { resizeImage, uploadImage, deleteImage } from "../modules/imageService.module.ts";
 import { state } from "../modules/state.module.ts";
-import { calcAge, confirmDeleteModal, createButton, createInputRow, createMessage, makeElement } from "../modules/utils";
+import { calcAge, confirmDeleteModal, createButton, createInputRow, createMessage, makeElement } from "../modules/utils.module.ts";
 import { addChildSponsorship, deleteChildSponsorship, getAllChildSponsorshipsByCohort, getAllCohorts } from "../services/firebase.service.ts";
 import htmlContent from "./sponsorChild.html?raw";
 

@@ -1,6 +1,6 @@
 import type { Post } from "../models/post.model";
-import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n";
-import { createButton, createLink, formatDate, makeElement } from "../modules/utils";
+import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n.module.ts";
+import { createButton, createLink, formatDate, makeElement } from "../modules/utils.module.ts";
 import { router } from "../router";
 import { getUserRole } from "../services/auth.service.ts";
 import { auth } from "../services/firebase";

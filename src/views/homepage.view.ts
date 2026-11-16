@@ -1,8 +1,8 @@
 import type { Post } from "../models/post.model";
 import type { Project } from "../models/project.model";
-import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n";
-import { displayGallery, getPhotosFromGithub, setupControls } from "../modules/imageGallery";
-import { createLink, formatDate, makeElement } from "../modules/utils";
+import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n.module.ts";
+import { displayGallery, getPhotosFromGithub, setupControls } from "../modules/imageGallery.module.ts";
+import { createLink, formatDate, makeElement } from "../modules/utils.module.ts";
 import { router } from "../router";
 import { getAllPosts, getProjectsByStatus } from "../services/firebase.service.ts";
 import htmlContent from "./homepage.html?raw"

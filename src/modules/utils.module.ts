@@ -612,3 +612,24 @@ export function calcAge(dateOfBirth: any): number {
 
     return age;
 }
+
+function setMetaTag(property: string, content: string) {
+  let tag = document.querySelector(`meta[property="${property}"]`);
+
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute("property", property);
+    document.head.appendChild(tag);
+  }
+
+  tag.setAttribute("content", content);
+}
+
+export function updatePageMeta(title: string, description?: string) {
+  document.title = title;
+  setMetaTag("og:title", title);
+
+  if (description) {
+    setMetaTag("og:description", description);
+  }
+}

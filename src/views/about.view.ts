@@ -1,7 +1,7 @@
 import type { Profile } from "../models/profile.model";
-import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n";
-import { deleteImage, resizeImage, uploadImage } from "../modules/imageService";
-import { confirmDeleteModal, createButton, createMessage, formatDate, makeElement } from "../modules/utils";
+import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n.module.ts";
+import { deleteImage, resizeImage, uploadImage } from "../modules/imageService.module.ts";
+import { confirmDeleteModal, createButton, createMessage, formatDate, makeElement } from "../modules/utils.module.ts";
 import { getAllProfiles, addProfile, getProfilesByCountry, deleteProfile, updateProfile, getPageContents } from "../services/firebase.service.ts";
 import htmlContent from "./about.html?raw"
 import { state } from "../modules/state.module.ts";

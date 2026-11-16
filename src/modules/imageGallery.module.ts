@@ -1,5 +1,5 @@
 import { ImageMetadata } from "../models/helper.model.js";
-import { makeElement } from "./utils.js";
+import { makeElement } from "./utils.module.js";
 
 export async function getPhotosFromGithub(baseURL: string): Promise<ImageMetadata[]> {
   try {

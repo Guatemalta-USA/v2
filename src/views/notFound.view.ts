@@ -1,4 +1,4 @@
-import { makeElement } from "../modules/utils";
+import { makeElement } from "../modules/utils.module";
 
 export async function renderNotFound(container: HTMLElement, pageId: string, pageTitle?: string) {
     container.innerHTML = "";

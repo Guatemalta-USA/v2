@@ -1,9 +1,9 @@
 import { Timestamp } from 'firebase/firestore';
 import type { SupportedLanguage, LocalizedString, LocalizedContent } from '../models/helper.model';
 import { Project } from '../models/project.model';
-import { TheEditor } from '../modules/editor';
+import { TheEditor } from '../modules/editor.module';
 import { state } from '../modules/state.module';
-import { storeMessage, createMessage, confirmDeleteModal } from '../modules/utils';
+import { storeMessage, createMessage, confirmDeleteModal } from '../modules/utils.module.ts';
 import { router } from '../router';
 import { getProjectById, saveProject, deleteProject } from '../services/firebase.service.ts';
 import htmlContent from './editProject.html?raw';

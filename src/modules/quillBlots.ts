@@ -1,6 +1,6 @@
 import Quill from 'quill';
-import { createButton } from './utils';
-import { showLightbox } from './imageGallery';
+import { createButton } from './utils.module';
+import { showLightbox } from './imageGallery.module';
 import { openGivebutterModal } from '../services/givebutter.service';
 
 interface BlotFormat {

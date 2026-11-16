@@ -1,5 +1,5 @@
 import type { ProjectInfo } from "../models/project.model.ts";
-import { makeElement, createButton, createGiveButterWidget } from "../modules/utils.ts";
+import { makeElement, createButton, createGiveButterWidget } from "../modules/utils.module.ts";
 import { router } from "../router.ts";
 import { getDonateButtonList } from "../services/firebase.service.ts.ts";
 import htmlContent from "./donate.html?raw"

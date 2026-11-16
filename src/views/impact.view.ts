@@ -1,7 +1,7 @@
 import type { Project } from "../models/project.model";
-import { updateContent } from "../modules/i18n";
+import { updateContent } from "../modules/i18n.module.ts";
 import { state } from "../modules/state.module";
-import { createButton, createLink, makeElement } from "../modules/utils";
+import { createButton, createLink, makeElement } from "../modules/utils.module.ts";
 import { router } from "../router.ts";
 import { getProjectsByStatus } from "../services/firebase.service.ts";
 import htmlContent from "./impact.html?raw";

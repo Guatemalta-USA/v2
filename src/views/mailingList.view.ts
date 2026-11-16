@@ -1,4 +1,4 @@
-import { createMessage, storeMessage } from "../modules/utils";
+import { createMessage, storeMessage } from "../modules/utils.module";
 import { router } from "../router";
 import htmlContent from "./mailingList.html?raw";
 

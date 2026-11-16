@@ -1,5 +1,5 @@
-import { createLink, createMessage, createSocialLink, donateListModal, makeElement } from "./utils.js";
-import i18n, { updateContent } from "./i18n.js";
+import { createLink, createMessage, createSocialLink, donateListModal, makeElement } from "./utils.module.js";
+import i18n, { updateContent } from "./i18n.module.js";
 import { signOutUser } from "../services/auth.service.ts.js";
 import { getDonateButtonList } from "../services/firebase.service.ts.js";
 import { router } from "../router.js";

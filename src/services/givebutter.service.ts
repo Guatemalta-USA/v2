@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { createGiveButterWidget } from '../modules/utils';
+import { createGiveButterWidget } from '../modules/utils.module';
 
 export function initGivebutter(): Promise<void> {
   return new Promise((resolve, reject) => {

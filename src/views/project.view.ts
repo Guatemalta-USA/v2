@@ -1,7 +1,7 @@
 import { state } from "../modules/state.module";
 import { router } from "../router";
-import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n";
-import { createButton, createGiveButterWidget, createGoalBar, createMessage, formatDate, makeElement } from "../modules/utils";
+import i18n, { getResolvedLanguage, updateContent } from "../modules/i18n.module.ts";
+import { createButton, createGiveButterWidget, createGoalBar, createMessage, formatDate, makeElement } from "../modules/utils.module.ts";
 import Quill from "quill";
 import 'quill/dist/quill.snow.css';
 import htmlContent from "./project.html?raw";

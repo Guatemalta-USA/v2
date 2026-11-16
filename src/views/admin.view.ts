@@ -1,7 +1,7 @@
 import type { Post } from "../models/post.model.ts";
 import { Project, type ProjectInfo } from "../models/project.model";
 import { state } from "../modules/state.module";
-import { confirmDeleteModal, copyToClipboard, createButton, createMessage, createTableHeader, makeElement, promptModal } from "../modules/utils";
+import { confirmDeleteModal, copyToClipboard, createButton, createMessage, createTableHeader, makeElement, promptModal } from "../modules/utils.module.ts";
 import { router } from "../router";
 import { deleteProjectFromDonateList, getAllPageSummaries, getDonateButtonList, getProjectsByStatus, getUnpublishedProjects, setProjectLink, updateDonateListOrder, updateProjectsOrder, type PageSummary } from "../services/firebase.service.ts";
 import { createDonateQRCodeWithLogo, createQRCodeWithLogo } from "../services/givebutter.service.ts";

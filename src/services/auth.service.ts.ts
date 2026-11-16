@@ -6,7 +6,7 @@ import {
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { createMessage } from "../modules/utils";
+import { createMessage } from "../modules/utils.module";
 
 /**
  * Signs out the user

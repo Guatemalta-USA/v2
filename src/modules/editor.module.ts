@@ -1,8 +1,8 @@
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import imageCompression from 'browser-image-compression';
-import { createMessage, formatDate, makeElement, promptModal } from './utils';
-import i18n, { updateContent, getResolvedLanguage } from './i18n';
+import { createMessage, formatDate, makeElement, promptModal } from './utils.module.ts';
+import i18n, { updateContent, getResolvedLanguage } from './i18n.module.ts';
 import { registerCustomQuillBlots } from './quillBlots';
 import { getPageContents, updatePageContents } from '../services/firebase.service.ts';
 import { PageContents } from '../models/page.model.ts';

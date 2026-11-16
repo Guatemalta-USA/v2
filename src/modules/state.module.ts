@@ -1,3 +1,5 @@
+import { updatePageMeta } from "./utils.module";
+
 type StateListener = (state: AppState) => void;
 
 class AppState {
@@ -54,9 +56,9 @@ class AppState {
                 .split("-")
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(" ");
-            document.title = `${formatted} | Guatemalta USA`;
+            updatePageMeta(`${formatted} | Guatemalta USA`);
         } else {
-            document.title = "Guatemalta USA | Sustainable Housing & Education Nonprofit";
+            updatePageMeta("Guatemalta USA | Sustainable Housing & Education Nonprofit");
         }
 
         if (this._currentPage !== newPage || this._parentPage !== newParent) {

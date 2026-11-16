@@ -1,8 +1,8 @@
 import { Timestamp } from 'firebase/firestore';
 import type { SupportedLanguage, LocalizedContent, LocalizedString } from '../models/helper.model';
-import { TheEditor } from '../modules/editor';
+import { TheEditor } from '../modules/editor.module';
 import { state } from '../modules/state.module';
-import { storeMessage, createMessage, promptModal, confirmDeleteModal } from '../modules/utils';
+import { storeMessage, createMessage, promptModal, confirmDeleteModal } from '../modules/utils.module.ts';
 import { router } from '../router';
 import { getPageContents, updatePageContents, deletePageContents } from '../services/firebase.service.ts';
 import htmlContent from './editPage.html?raw';
