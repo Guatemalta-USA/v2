@@ -78,7 +78,7 @@ export const resources = {
             "nav_contact": "Contacta con nosotras",
             "nav_mailing_list": "Lista de correo",
             "nav_impact": "Impacto",
-            "nav_donate": "donar",
+            "nav_donate": "Donar ahora",
             "nav_admin": "administración",
             "nav_logout": "Cerrar sesión",
             "header_mission": "Construyendo un puente de esperanza hacia Guatemala mediante viviendas sostenibles, agua limpia y oportunidades educativas.",
